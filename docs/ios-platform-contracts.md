@@ -6,7 +6,7 @@ This is an interface-only boundary proposal for the shared Kotlin Multiplatform 
 |---|---|---|
 | PdfEngine | **PDFKit** + Core Graphics | PDFDocument and PDFPage for page operations, text extraction and rasterization. Advanced editing/export behaviors must be assessed against the Android feature set before parity claims. |
 | OcrEngine | **Vision** | VNRecognizeTextRequest; use Vision language correction and recognition-level settings in the future adapter. |
-| Translator | **Apple Translation framework** | TranslationSession; available from iOS 18. The app scaffold currently targets iOS 15, so translation on iOS 15–17 needs a separately selected on-device fallback (for example, a bundled Core ML model) before this capability is exposed. |
+| Translator | **Google ML Kit for iOS (Translate)** | On-device Translation API; language-specific models are downloaded and managed on-device. ML Kit's published iOS prerequisites are iOS 15.5+ and 64-bit architecture, so the app's iOS 16.0 floor satisfies this requirement. |
 | BillingProvider | **StoreKit 2** | Product, verified Transaction, Transaction.currentEntitlements, and AppStore.sync for purchase and restore state. |
 | AdProvider | **Google Mobile Ads SDK for iOS (AdMob)** | Native SDK adapter; consent, ATT, ad identifiers and placement policy remain platform-specific decisions. |
 | FileExporter | **SwiftUI FileDocument / fileExporter** | UniformTypeIdentifiers for export types; UIActivityViewController for share-sheet presentation when needed. |
@@ -25,3 +25,4 @@ This is an interface-only boundary proposal for the shared Kotlin Multiplatform 
 - No Android implementation relocation or business-logic migration.
 - No parity assertion for the PDF, OCR, translation, billing, ads or export feature sets.
 - No iOS purchase product IDs, ad unit IDs, tracking configuration or privacy prompts are selected here.
+- The ML Kit Translation adapter is a recorded platform decision only; no translation implementation or SDK integration is included in this phase.

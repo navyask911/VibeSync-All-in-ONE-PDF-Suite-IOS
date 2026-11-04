@@ -12,6 +12,10 @@ kotlin {
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { target ->
+        target.binaries.configureEach {
+            // Match the Xcode app target; Kotlin/Native defaults to iOS 15.0.
+            freeCompilerArgs += "-Xoverride-konan-properties=minVersion.ios=16.0"
+        }
         target.binaries.framework {
             baseName = "Shared"
             isStatic = true

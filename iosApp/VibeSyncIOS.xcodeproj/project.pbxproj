@@ -154,7 +154,7 @@
             isa = XCBuildConfiguration;
             buildSettings = {
                 CLANG_ENABLE_MODULES = YES;
-                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 SDKROOT = iphoneos;
                 SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -166,7 +166,7 @@
             isa = XCBuildConfiguration;
             buildSettings = {
                 CLANG_ENABLE_MODULES = YES;
-                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 SDKROOT = iphoneos;
                 SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
                 SWIFT_COMPILATION_MODE = wholemodule;
@@ -183,7 +183,7 @@
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
                 GENERATE_INFOPLIST_FILE = NO;
                 INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
-                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
                 OTHER_LDFLAGS = "$(inherited) -framework Shared";
                 PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
@@ -204,7 +204,7 @@
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
                 GENERATE_INFOPLIST_FILE = NO;
                 INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
-                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
                 OTHER_LDFLAGS = "$(inherited) -framework Shared";
                 PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
