@@ -95,7 +95,7 @@ import com.vibesync.toolkit.pdf.presentation.dashboard.DashboardScreen
 import com.vibesync.toolkit.pdf.presentation.dashboard.DashboardViewModel
 import com.vibesync.toolkit.pdf.presentation.editor.EditorViewModel
 import com.vibesync.toolkit.pdf.presentation.editor.PdfEditorScreen
-import com.vibesync.toolkit.pdf.presentation.editor.SignatureManagerScreen
+import com.vibesync.toolkit.pdf.presentation.editor.SignatureManagerDestination
 import com.vibesync.toolkit.pdf.presentation.scanner.ManualCropScreen
 import com.vibesync.toolkit.pdf.presentation.vault.VaultGate
 import com.vibesync.toolkit.pdf.presentation.vault.VaultScreen
@@ -654,7 +654,7 @@ class MainActivity : AppCompatActivity() {
                         }
 
                         composable("signature_manager") {
-                            SignatureManagerScreen(
+                            SignatureManagerDestination(
                                 onNavigateBack = { navController.popBackStack() },
                                 onSelectSignature = { bitmap, _, _, _, _, _ ->
                                     Toast.makeText(
