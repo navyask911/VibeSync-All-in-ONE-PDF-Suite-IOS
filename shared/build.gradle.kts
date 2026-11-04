@@ -5,8 +5,18 @@ plugins {
 
 kotlin {
     androidTarget()
-    iosArm64()
-    iosSimulatorArm64()
+
+    // Produce a static framework that can be linked directly by the SwiftUI Xcode target.
+    // Keep the device target available while CI validates the arm64 simulator target.
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { target ->
+        target.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
 
     sourceSets {
         commonMain.dependencies {

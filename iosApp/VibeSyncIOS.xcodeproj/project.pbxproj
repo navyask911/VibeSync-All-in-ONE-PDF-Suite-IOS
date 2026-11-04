@@ -1,0 +1,217 @@
+// !$*UTF8*$!
+{
+    archiveVersion = 1;
+    classes = {};
+    objectVersion = 56;
+    objects = {
+        100000000000000000000001 /* Project object */ = {
+            isa = PBXProject;
+            attributes = {
+                BuildIndependentTargetsInParallel = YES;
+                LastUpgradeCheck = 1600;
+                TargetAttributes = {
+                    300000000000000000000001 = {
+                        CreatedOnToolsVersion = 16.0;
+                    };
+                };
+            };
+            buildConfigurationList = 500000000000000000000001;
+            compatibilityVersion = "Xcode 14.0";
+            developmentRegion = en;
+            hasScannedForEncodings = 0;
+            knownRegions = (en, Base);
+            mainGroup = 700000000000000000000001;
+            productRefGroup = 700000000000000000000002;
+            projectDirPath = "";
+            projectRoot = "";
+            targets = (300000000000000000000001 /* VibeSyncIOSApp */,);
+        };
+        200000000000000000000001 /* ContentView.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000001 /* ContentView.swift */;
+        };
+        200000000000000000000002 /* VibeSyncIOSApp.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000002 /* VibeSyncIOSApp.swift */;
+        };
+        300000000000000000000001 /* VibeSyncIOSApp */ = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = 500000000000000000000002;
+            buildPhases = (
+                400000000000000000000001 /* Build Shared Kotlin Framework */,
+                400000000000000000000002 /* Sources */,
+                400000000000000000000003 /* Frameworks */,
+                400000000000000000000004 /* Resources */,
+            );
+            buildRules = ();
+            dependencies = ();
+            name = VibeSyncIOSApp;
+            productName = VibeSyncIOSApp;
+            productReference = 600000000000000000000003 /* VibeSyncIOSApp.app */;
+            productType = "com.apple.product-type.application";
+        };
+        400000000000000000000001 /* Build Shared Kotlin Framework */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Build Shared Kotlin Framework";
+            outputPaths = ();
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/sh;
+            shellScript = "set -e\ncd \"$SRCROOT/../android\"\n./gradlew --no-daemon \":shared:link${CONFIGURATION}FrameworkIosSimulatorArm64\"\n";
+        };
+        400000000000000000000002 /* Sources */ = {
+            isa = PBXSourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = (
+                200000000000000000000001 /* ContentView.swift in Sources */,
+                200000000000000000000002 /* VibeSyncIOSApp.swift in Sources */,
+            );
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        400000000000000000000003 /* Frameworks */ = {
+            isa = PBXFrameworksBuildPhase;
+            buildActionMask = 2147483647;
+            files = ();
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        400000000000000000000004 /* Resources */ = {
+            isa = PBXResourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = ();
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        500000000000000000000001 /* Project Build Configuration List */ = {
+            isa = XCConfigurationList;
+            buildConfigurations = (
+                800000000000000000000001 /* Debug */,
+                800000000000000000000002 /* Release */,
+            );
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
+        500000000000000000000002 /* Target Build Configuration List */ = {
+            isa = XCConfigurationList;
+            buildConfigurations = (
+                800000000000000000000003 /* Debug */,
+                800000000000000000000004 /* Release */,
+            );
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
+        600000000000000000000001 /* ContentView.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = ContentView.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000002 /* VibeSyncIOSApp.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = VibeSyncIOSApp.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000003 /* VibeSyncIOSApp.app */ = {
+            isa = PBXFileReference;
+            explicitFileType = wrapper.application;
+            includeInIndex = 0;
+            path = VibeSyncIOSApp.app;
+            sourceTree = BUILT_PRODUCTS_DIR;
+        };
+        600000000000000000000004 /* Info.plist */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = text.plist.xml;
+            path = Info.plist;
+            sourceTree = "<group>";
+        };
+        700000000000000000000001 /* Main Group */ = {
+            isa = PBXGroup;
+            children = (
+                700000000000000000000003 /* VibeSyncIOSApp */,
+                700000000000000000000002 /* Products */,
+            );
+            sourceTree = "<group>";
+        };
+        700000000000000000000002 /* Products */ = {
+            isa = PBXGroup;
+            children = (600000000000000000000003 /* VibeSyncIOSApp.app */,);
+            name = Products;
+            sourceTree = "<group>";
+        };
+        700000000000000000000003 /* VibeSyncIOSApp */ = {
+            isa = PBXGroup;
+            children = (
+                600000000000000000000001 /* ContentView.swift */,
+                600000000000000000000002 /* VibeSyncIOSApp.swift */,
+                600000000000000000000004 /* Info.plist */,
+            );
+            path = VibeSyncIOSApp;
+            sourceTree = "<group>";
+        };
+        800000000000000000000001 /* Debug */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CLANG_ENABLE_MODULES = YES;
+                SDKROOT = iphoneos;
+                SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+                SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+            };
+            name = Debug;
+        };
+        800000000000000000000002 /* Release */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CLANG_ENABLE_MODULES = YES;
+                SDKROOT = iphoneos;
+                SWIFT_COMPILATION_MODE = wholemodule;
+                SWIFT_OPTIMIZATION_LEVEL = "-O";
+            };
+            name = Release;
+        };
+        800000000000000000000003 /* Debug */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                ARCHS = arm64;
+                CODE_SIGN_STYLE = Automatic;
+                CURRENT_PROJECT_VERSION = 1;
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
+                GENERATE_INFOPLIST_FILE = NO;
+                INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
+                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -framework Shared";
+                PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+            };
+            name = Debug;
+        };
+        800000000000000000000004 /* Release */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                ARCHS = arm64;
+                CODE_SIGN_STYLE = Automatic;
+                CURRENT_PROJECT_VERSION = 1;
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
+                GENERATE_INFOPLIST_FILE = NO;
+                INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
+                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -framework Shared";
+                PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+            };
+            name = Release;
+        };
+    };
+    rootObject = 100000000000000000000001 /* Project object */;
+}
