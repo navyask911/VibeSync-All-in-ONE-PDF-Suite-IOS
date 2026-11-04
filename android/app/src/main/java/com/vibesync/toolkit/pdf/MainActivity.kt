@@ -1,6 +1,7 @@
 package com.vibesync.toolkit.pdf
 
 import com.vibesync.toolkit.pdf.data.pdf.PdfBitmapUtils
+import com.vibesync.shared.KmpCheck
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -208,6 +209,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        Log.d("KMP_TEST", KmpCheck.isWorking())
         billingManager = LocalAdBillingManager(
             context = applicationContext,
             prefs = EncryptedBillingPreferences(applicationContext)

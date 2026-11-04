@@ -22,4 +22,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "VibeSyncPDFSuite"
-include(":app")
+include(":app", ":shared")
+project(":shared").projectDir = file("../shared")
