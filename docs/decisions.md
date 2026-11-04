@@ -7,7 +7,7 @@
 ### Decision
 
 - Set the iOS app's minimum deployment target to **iOS 16.0** for both the Xcode project configurations and the VibeSyncIOSApp target configurations.
-- Set the Kotlin/Native iOS device and simulator framework minimum to **iOS 16.0** using the compiler-supported option **-Xoverride-konan-properties=minVersion.ios=16.0**.
+- Set the Kotlin/Native iOS device and simulator framework minimum to **iOS 16.0** using the Kotlin 2.2.21 target-specific compiler properties **-Xoverride-konan-properties=osVersionMin.ios_arm64=16.0;osVersionMin.ios_simulator_arm64=16.0**. Both properties are set explicitly because Kotlin 2.2.21's simulator property is not derived from minVersion.ios.
 - Use **Google ML Kit for iOS Translation** as the planned on-device translation provider. Do not use Apple's Translation framework for this product requirement.
 
 ### Rationale
