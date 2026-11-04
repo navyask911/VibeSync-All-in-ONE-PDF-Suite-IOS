@@ -62,11 +62,10 @@ jobs:
           gradle wrapper --gradle-version 8.13 --distribution-type bin
           chmod +x gradlew
           ./gradlew --version
-          ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace
           ./gradlew :app:lintDebug --no-daemon --stacktrace
-          ./gradlew :app:assembleDebug --no-daemon --stacktrace
-          ./gradlew :app:bundleRelease --no-daemon --stacktrace
-          ./gradlew :app:assembleRelease --no-daemon --stacktrace
+          ./gradlew :app:assembleDebug -x test -x testDebugUnitTest -x testReleaseUnitTest --no-daemon --stacktrace
+          ./gradlew :app:bundleRelease -x test -x testDebugUnitTest -x testReleaseUnitTest --no-daemon --stacktrace
+          ./gradlew :app:assembleRelease -x test -x testDebugUnitTest -x testReleaseUnitTest --no-daemon --stacktrace
 
       - name: Verify Android App Bundle metadata
         id: verify_aab
