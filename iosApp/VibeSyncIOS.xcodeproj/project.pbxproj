@@ -153,8 +153,10 @@
         800000000000000000000001 /* Debug */ = {
             isa = XCBuildConfiguration;
             buildSettings = {
-                CLANG_ENABLE_MODULES = YES;
+                                CLANG_ENABLE_MODULES = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
                 SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
                 SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
                 SWIFT_OPTIMIZATION_LEVEL = "-Onone";
             };
@@ -163,8 +165,10 @@
         800000000000000000000002 /* Release */ = {
             isa = XCBuildConfiguration;
             buildSettings = {
-                CLANG_ENABLE_MODULES = YES;
+                                CLANG_ENABLE_MODULES = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 15.0;
                 SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
                 SWIFT_COMPILATION_MODE = wholemodule;
                 SWIFT_OPTIMIZATION_LEVEL = "-O";
             };
