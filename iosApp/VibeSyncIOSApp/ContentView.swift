@@ -130,7 +130,7 @@ struct ContentView: View {
             }
 
             let data = try Data(contentsOf: url)
-            let count = Int(IosPlatformProviders.shared.pdfPageCount(data: data as NSData))
+            let count = Int(IosPlatformProviders.shared.pdfPageCount(data: data))
             guard count > 0 else {
                 throw CocoaError(.fileReadCorruptFile)
             }
@@ -154,7 +154,7 @@ struct ContentView: View {
         let suggestedName = selectedPDFName.isEmpty ? "document-copy.pdf" : "\(selectedPDFName)-copy.pdf"
         guard
             let stagedURI = IosPlatformProviders.shared.stageExportCopy(
-                data: selectedPDFData as NSData,
+                data: selectedPDFData,
                 suggestedFileName: suggestedName
             ),
             let stagedURL = URL(string: stagedURI)
