@@ -12,7 +12,7 @@
 
 ### Rationale
 
-The SwiftUI scaffold uses NavigationStack, which is native from iOS 16. Matching the Xcode app and Kotlin framework minimums avoids a deployment-target mismatch at link time. Kotlin/Native normally targets iOS 15.0; its compiler supports setting the Apple-platform minimum with the minVersion.ios Konan property.
+The SwiftUI scaffold uses NavigationStack, which is native from iOS 16. Matching the Xcode app and Kotlin framework minimums avoids a deployment-target mismatch at link time. Kotlin 2.2.21 exposes target-specific osVersionMin properties; the iOS device and simulator values are both overridden explicitly because the simulator property is independently defined in the plugin's konan.properties.
 
 Google's ML Kit iOS guidance documents iOS **15.5 or later** and 64-bit architecture support. Its Translation API runs on-device and downloads language-specific models to the device as needed. Therefore ML Kit can support the app's iOS 16.0 floor without depending on Apple's iOS 18 Translation framework availability.
 

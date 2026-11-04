@@ -76,9 +76,9 @@ interface AdProvider {
 /**
  * Platform-neutral user-mediated file export boundary.
  *
- * Returns a platform URI string when the user completes export, or null when the user cancels.
- * iOS adapter technology: SwiftUI fileExporter/FileDocument with UniformTypeIdentifiers;
- * use UIActivityViewController for a share-sheet flow where required.
+ * Returns a URI for a staged export file, or null if staging cannot be completed.
+ * The platform host presents the user-mediated save UI using SwiftUI fileExporter/FileDocument
+ * with UniformTypeIdentifiers; use UIActivityViewController for a share-sheet flow where required.
  */
 interface FileExporter {
     suspend fun export(
