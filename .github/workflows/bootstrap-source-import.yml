@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  workflows: write
 
 jobs:
   import-source:
@@ -27,6 +26,8 @@ jobs:
           git remote add origin https://github.com/navyask911/VibeSync-All-in-ONE-PDF-Suite.git
           git fetch --no-tags origin refs/heads/playstore/v1.0.7-compliance
           git checkout -b source-import FETCH_HEAD
+          # Keep source workflow files out of this GitHub-token push; restore them via the GitHub App API afterward.
+          rm -rf .github
           git remote set-url origin https://github.com/navyask911/VibeSync-All-in-ONE-PDF-Suite-IOS.git
           git fetch --no-tags origin main
           git merge --strategy=ort -X ours --allow-unrelated-histories --no-edit FETCH_HEAD
