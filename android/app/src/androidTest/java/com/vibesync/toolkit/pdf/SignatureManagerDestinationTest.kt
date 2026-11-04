@@ -2,7 +2,13 @@ package com.vibesync.toolkit.pdf
 
 import com.vibesync.toolkit.pdf.presentation.editor.SignatureManagerDestination
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onAllNodes
+import androidx.compose.ui.test.onNode
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -58,6 +64,8 @@ class SignatureManagerDestinationTest {
         composeTestRule.onNodeWithTag("signature_manager_create")
             .assertIsDisplayed()
             .performClick()
-        composeTestRule.onNodeWithText(drawTitle).assertIsDisplayed()
+        val signaturePadTitle = hasAnyAncestor(isDialog()) and hasText(drawTitle)
+        composeTestRule.onAllNodes(signaturePadTitle).assertCountEquals(1)
+        composeTestRule.onNode(signaturePadTitle).assertIsDisplayed()
     }
 }
