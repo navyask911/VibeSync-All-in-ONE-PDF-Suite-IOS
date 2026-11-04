@@ -37,8 +37,8 @@ interface OcrEngine {
  * Platform-neutral translation boundary.
  *
  * Language tags use BCP-47 identifiers (for example, "en" or "hi").
- * iOS adapter technology: Apple Translation framework (iOS 18+); define a Core ML or other
- * on-device fallback before enabling translation on earlier supported iOS versions.
+ * iOS adapter technology: Google ML Kit Translation API (on-device; language models are downloaded
+ * to the device). ML Kit supports iOS 15.5+ and 64-bit architectures; the app baseline is iOS 16.0+.
  */
 interface Translator {
     suspend fun translate(
