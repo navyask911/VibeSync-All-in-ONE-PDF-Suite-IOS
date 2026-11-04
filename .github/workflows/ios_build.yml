@@ -1,6 +1,7 @@
 name: iOS Simulator Build
 
 on:
+  workflow_dispatch:
   push:
     paths:
       - "shared/**"
@@ -25,7 +26,8 @@ permissions:
 
 concurrency:
   group: ios-simulator-${{ github.ref }}
-  cancel-in-progress: true
+  # Keep an active Xcode build alive; do not cancel it when another run is queued.
+  cancel-in-progress: false
 
 jobs:
   build-ios-simulator:
