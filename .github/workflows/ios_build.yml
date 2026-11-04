@@ -60,3 +60,12 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Upload iOS Simulator app artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeSyncIOSApp-iOS-Simulator
+          path: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+          if-no-files-found: error
+          retention-days: 14
