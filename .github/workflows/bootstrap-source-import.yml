@@ -28,7 +28,7 @@ jobs:
           git checkout -b source-import FETCH_HEAD
           git remote set-url origin https://github.com/navyask911/VibeSync-All-in-ONE-PDF-Suite-IOS.git
           git fetch --no-tags origin main
-          git merge --allow-unrelated-histories --no-edit FETCH_HEAD
+          git merge --strategy=ort -X ours --allow-unrelated-histories --no-edit FETCH_HEAD
           echo "=== git remote -v ==="
           git remote -v
           echo "=== git log -1 --oneline ==="
