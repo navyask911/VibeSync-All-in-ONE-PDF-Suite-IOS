@@ -500,7 +500,7 @@ jobs:
 
           if [ -n "$APP_RELEASE_ASSET" ]; then
             echo "Downloading prebuilt app from GitHub Release: $APP_RELEASE_ASSET"
-            gh release download flutter-remote-build -p "$APP_RELEASE_ASSET"
+            gh release download flutter-remote-build -p "$APP_RELEASE_ASSET" --repo "$GITHUB_REPOSITORY"
             ARCHIVE="$APP_RELEASE_ASSET"
           elif [ -n "$APP_URL" ]; then
             echo "Downloading prebuilt app from URL: $APP_URL"
