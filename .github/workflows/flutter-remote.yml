@@ -189,8 +189,15 @@ jobs:
       - name: Start serve-sim
         id: serve_sim
         timeout-minutes: 10
+        env:
+          # Share the same short-lived session token with the outer flutter-remote gate.
+          SERVE_SIM_AUTH_TOKEN: ${{ inputs.gate_token }}
         run: |
           set -euo pipefail
+          if [ -z "$SERVE_SIM_AUTH_TOKEN" ]; then
+            echo "::error::A session auth token is required for remote serve-sim access."
+            exit 1
+          fi
 
           CODEC='${{ inputs.codec }}'
           if [ "$CODEC" = "auto" ]; then
@@ -204,10 +211,12 @@ jobs:
             --panes none
             --port "$PREVIEW_PORT"
             --codec "$CODEC"
+            --auth-token "$SERVE_SIM_AUTH_TOKEN"
           )
 
-          echo "Starting serve-sim with codec=$CODEC args: ${ARGS[*]}"
-          SERVE_SIM_OUT=$(npx --yes serve-sim "${ARGS[@]}" "${{ steps.sim.outputs.udid }}" || true)
+          # Do not print ARGS: it contains the ephemeral auth token.
+          echo "Starting serve-sim with codec=$CODEC and remote auth enabled (token redacted)."
+          SERVE_SIM_OUT=$(npx --yes serve-sim@0.1.49 "${ARGS[@]}" "${{ steps.sim.outputs.udid }}" || true)
           echo "serve-sim raw output: $SERVE_SIM_OUT"
 
           for i in {1..30}; do

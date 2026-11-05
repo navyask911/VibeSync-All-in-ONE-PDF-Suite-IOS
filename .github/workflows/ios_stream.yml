@@ -144,6 +144,19 @@ jobs:
             exit 1
           fi
 
+          # The ?k= token is checked by the outer flutter-remote gate. serve-sim
+          # independently reads the same token from the browser URL fragment.
+          SERVE_SIM_TOKEN=$(node -e '
+            const url = new URL(process.argv[1]);
+            const token = url.searchParams.get("k") || "";
+            if (!token) process.exit(1);
+            process.stdout.write(encodeURIComponent(token));
+          ' "$STREAM_URL") || {
+            echo "::error::Could not extract the gate token for serve-sim browser auth."
+            exit 1
+          }
+          STREAM_URL="${STREAM_URL}#token=${SERVE_SIM_TOKEN}"
+
           {
             echo "## Live VibeSync iOS Simulator"
             echo
