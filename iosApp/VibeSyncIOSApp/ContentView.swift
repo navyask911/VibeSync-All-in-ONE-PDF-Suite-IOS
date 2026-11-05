@@ -93,6 +93,39 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("tool_id_card")
 
+                    NavigationLink {
+                        SignatureManagerView()
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "signature")
+                                .font(.system(size: 26, weight: .medium))
+                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
+                                .frame(width: 48, height: 48)
+                                .background(VibeSyncColors.white.opacity(0.8))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Signature Manager")
+                                    .vibeSyncStyle(.titleMedium)
+                                    .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                                Text("Draw, save and manage signatures")
+                                    .vibeSyncStyle(.bodyMedium)
+                                    .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+                            }
+
+                            Spacer(minLength: 4)
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
+                        }
+                        .padding(14)
+                        .background(VibeSyncColors.surfaceVariant(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("tool_signature_manager")
+
                     Divider()
 
                     Text("PDF")

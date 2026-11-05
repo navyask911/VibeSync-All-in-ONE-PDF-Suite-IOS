@@ -42,6 +42,14 @@
             isa = PBXBuildFile;
             fileRef = 600000000000000000000006 /* IdCardComposerView.swift */;
         };
+        200000000000000000000007 /* SignatureVault.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000009 /* SignatureVault.swift */;
+        };
+        200000000000000000000008 /* SignatureManagerView.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 60000000000000000000000A /* SignatureManagerView.swift */;
+        };
         200000000000000000000005 /* Roboto-Variable.ttf in Resources */ = {
             isa = PBXBuildFile;
             fileRef = 600000000000000000000007 /* Roboto-Variable.ttf */;
@@ -86,6 +94,8 @@
                 200000000000000000000002 /* VibeSyncIOSApp.swift in Sources */,
                 200000000000000000000003 /* VibeSyncTheme.swift in Sources */,
                 200000000000000000000004 /* IdCardComposerView.swift in Sources */,
+                200000000000000000000007 /* SignatureVault.swift in Sources */,
+                200000000000000000000008 /* SignatureManagerView.swift in Sources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -171,6 +181,18 @@
             path = OFL.txt;
             sourceTree = "<group>";
         };
+        600000000000000000000009 /* SignatureVault.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = SignatureVault.swift;
+            sourceTree = "<group>";
+        };
+        60000000000000000000000A /* SignatureManagerView.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = SignatureManagerView.swift;
+            sourceTree = "<group>";
+        };
         700000000000000000000001 /* Main Group */ = {
             isa = PBXGroup;
             children = (
@@ -195,6 +217,8 @@
                 600000000000000000000006 /* IdCardComposerView.swift */,
                 600000000000000000000007 /* Roboto-Variable.ttf */,
                 600000000000000000000008 /* OFL.txt */,
+                600000000000000000000009 /* SignatureVault.swift */,
+                60000000000000000000000A /* SignatureManagerView.swift */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";
