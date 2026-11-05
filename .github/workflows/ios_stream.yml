@@ -135,9 +135,9 @@ jobs:
             --public \
             --no-open 2>&1 | tee "$LOG_FILE"
 
-          # The URL contains a short-lived bearer token. Capture it from the
-          # CLI output so the Actions summary offers a clickable browser link.
-          STREAM_URL=$(grep -Eo 'https://[[:alnum:].-]+\.trycloudflare\.com/\?k=[[:alnum:]_-]+' "$LOG_FILE" | tail -n 1 || true)
+          # The CLI prints an authenticated URL ending in /?k=<token>.
+          # Capture that whole URL without restricting the token alphabet.
+          STREAM_URL=$(grep -Eo 'https://[^[:space:]]+\.trycloudflare\.com/\?k=[^[:space:]]+' "$LOG_FILE" | tail -n 1 || true)
           if [ -z "$STREAM_URL" ]; then
             echo "::error::flutter-remote did not print a live simulator URL."
             echo "Check the flutter-remote runner workflow linked in the logs above."
@@ -146,6 +146,10 @@ jobs:
 
           {
             echo "## Live VibeSync iOS Simulator"
+            echo
+            echo "**Authenticated simulator URL:**"
+            echo
+            echo "$STREAM_URL"
             echo
             echo "[Open the interactive simulator in your browser]($STREAM_URL)"
             echo
