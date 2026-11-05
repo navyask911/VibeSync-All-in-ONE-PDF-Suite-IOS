@@ -21,6 +21,8 @@ on:
       - "android/gradlew"
       - ".github/workflows/ios_build.yml"
       - ".github/workflows/ios_stream.yml"
+      - ".github/workflows/flutter-remote.yml"
+      - ".github/flutter-remote/**"
 
 permissions:
   contents: write
