@@ -27,6 +27,7 @@ private struct PDFExportDocument: FileDocument {
 struct ContentView: View {
     private let sharedModuleStatus = KmpCheck.shared.isWorking()
 
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isImportingPDF = false
     @State private var isExportingPDF = false
     @State private var selectedPDFData: Data?
@@ -37,63 +38,114 @@ struct ContentView: View {
     @State private var statusMessage = "Choose a PDF to view its page count."
     @State private var errorMessage: String?
 
-    init() {
-        IosPlatformProviders.shared.install()
-    }
-
     var body: some View {
         NavigationStack {
-            VStack(spacing: 18) {
-                Image(systemName: "doc.richtext")
-                    .font(.system(size: 52, weight: .regular))
-                    .foregroundStyle(.tint)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(spacing: 8) {
+                        Image(systemName: "doc.richtext")
+                            .font(.system(size: 48, weight: .regular))
+                            .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
 
-                Text("VibeSync All in ONE PDF Suite")
-                    .font(.title2.weight(.semibold))
-                    .multilineTextAlignment(.center)
+                        Text("VibeSync All in ONE PDF Suite")
+                            .vibeSyncStyle(.headlineMedium)
+                            .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                            .multilineTextAlignment(.center)
 
-                Text(sharedModuleStatus)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("shared_module_status")
+                        Text(sharedModuleStatus)
+                            .vibeSyncStyle(.bodyMedium)
+                            .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+                            .accessibilityIdentifier("shared_module_status")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
 
-                Button {
-                    isImportingPDF = true
-                } label: {
-                    Label("Choose PDF", systemImage: "doc.badge.plus")
+                    NavigationLink {
+                        IdCardComposerView()
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "person.text.rectangle")
+                                .font(.system(size: 26, weight: .medium))
+                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
+                                .frame(width: 48, height: 48)
+                                .background(VibeSyncColors.white.opacity(0.8))
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("ID Card Composer")
+                                    .vibeSyncStyle(.titleMedium)
+                                    .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                                Text("Put card front and back on one A4 page")
+                                    .vibeSyncStyle(.bodyMedium)
+                                    .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+                            }
+
+                            Spacer(minLength: 4)
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
+                        }
+                        .padding(14)
+                        .background(VibeSyncColors.surfaceVariant(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("tool_id_card")
+
+                    Divider()
+
+                    Text("PDF")
+                        .vibeSyncStyle(.titleLarge)
+                        .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+
+                    Button {
+                        isImportingPDF = true
+                    } label: {
+                        Label("Choose PDF", systemImage: "doc.badge.plus")
+                            .font(VibeSyncTypography.labelLarge)
+                            .lineSpacing(6)
+                            .tracking(0.5)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(VibeSyncColors.primary(for: colorScheme))
+
+                    if let pageCount {
+                        Text("\(pageCount) pages")
+                            .vibeSyncStyle(.titleMedium)
+                            .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                            .accessibilityIdentifier("pdf_page_count")
+                    }
+
+                    Button {
+                        prepareExportCopy()
+                    } label: {
+                        Label("Export a copy", systemImage: "square.and.arrow.up")
+                            .font(VibeSyncTypography.labelLarge)
+                            .lineSpacing(6)
+                            .tracking(0.5)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(VibeSyncColors.primary(for: colorScheme))
+                    .disabled(selectedPDFData == nil || pageCount == nil)
+
+                    Text(statusMessage)
+                        .vibeSyncStyle(.bodyMedium)
+                        .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+
+                    if let errorMessage {
+                        Text(errorMessage)
+                            .vibeSyncStyle(.bodyMedium)
+                            .foregroundStyle(VibeSyncColors.dangerRed)
+                    }
                 }
-                .buttonStyle(.borderedProminent)
-
-                if let pageCount {
-                    Text("\(pageCount) pages")
-                        .font(.headline)
-                        .accessibilityIdentifier("pdf_page_count")
-                }
-
-                Button {
-                    prepareExportCopy()
-                } label: {
-                    Label("Export a copy", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.bordered)
-                .disabled(selectedPDFData == nil || pageCount == nil)
-
-                Text(statusMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
-                }
-
-                Spacer(minLength: 0)
+                .padding(20)
             }
-            .padding(24)
+            .background(VibeSyncColors.background(for: colorScheme).ignoresSafeArea())
             .navigationTitle("VibeSync")
+            .navigationBarTitleDisplayMode(.large)
             .fileImporter(
                 isPresented: $isImportingPDF,
                 allowedContentTypes: [.pdf],
@@ -116,6 +168,10 @@ struct ContentView: View {
                     errorMessage = error.localizedDescription
                 }
             }
+        }
+        .tint(VibeSyncColors.primary(for: colorScheme))
+        .onAppear {
+            IosPlatformProviders.shared.install()
         }
     }
 

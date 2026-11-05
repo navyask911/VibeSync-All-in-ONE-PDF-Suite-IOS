@@ -18,6 +18,12 @@
     <string>1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>NSCameraUsageDescription</key>
+    <string>VibeSync uses the camera to capture the front and back of an ID card.</string>
+    <key>UIAppFonts</key>
+    <array>
+        <string>Roboto-Variable.ttf</string>
+    </array>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UILaunchScreen</key>

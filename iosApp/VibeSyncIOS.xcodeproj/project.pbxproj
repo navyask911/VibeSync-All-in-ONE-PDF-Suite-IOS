@@ -34,6 +34,22 @@
             isa = PBXBuildFile;
             fileRef = 600000000000000000000002 /* VibeSyncIOSApp.swift */;
         };
+        200000000000000000000003 /* VibeSyncTheme.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000005 /* VibeSyncTheme.swift */;
+        };
+        200000000000000000000004 /* IdCardComposerView.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000006 /* IdCardComposerView.swift */;
+        };
+        200000000000000000000005 /* Roboto-Variable.ttf in Resources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000007 /* Roboto-Variable.ttf */;
+        };
+        200000000000000000000006 /* OFL.txt in Resources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000008 /* OFL.txt */;
+        };
         300000000000000000000001 /* VibeSyncIOSApp */ = {
             isa = PBXNativeTarget;
             buildConfigurationList = 500000000000000000000002;
@@ -68,6 +84,8 @@
             files = (
                 200000000000000000000001 /* ContentView.swift in Sources */,
                 200000000000000000000002 /* VibeSyncIOSApp.swift in Sources */,
+                200000000000000000000003 /* VibeSyncTheme.swift in Sources */,
+                200000000000000000000004 /* IdCardComposerView.swift in Sources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -80,7 +98,10 @@
         400000000000000000000004 /* Resources */ = {
             isa = PBXResourcesBuildPhase;
             buildActionMask = 2147483647;
-            files = ();
+            files = (
+                200000000000000000000005 /* Roboto-Variable.ttf in Resources */,
+                200000000000000000000006 /* OFL.txt in Resources */,
+            );
             runOnlyForDeploymentPostprocessing = 0;
         };
         500000000000000000000001 /* Project Build Configuration List */ = {
@@ -126,6 +147,30 @@
             path = Info.plist;
             sourceTree = "<group>";
         };
+        600000000000000000000005 /* VibeSyncTheme.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = VibeSyncTheme.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000006 /* IdCardComposerView.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = IdCardComposerView.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000007 /* Roboto-Variable.ttf */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = file;
+            path = Roboto-Variable.ttf;
+            sourceTree = "<group>";
+        };
+        600000000000000000000008 /* OFL.txt */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = text;
+            path = OFL.txt;
+            sourceTree = "<group>";
+        };
         700000000000000000000001 /* Main Group */ = {
             isa = PBXGroup;
             children = (
@@ -146,6 +191,10 @@
                 600000000000000000000001 /* ContentView.swift */,
                 600000000000000000000002 /* VibeSyncIOSApp.swift */,
                 600000000000000000000004 /* Info.plist */,
+                600000000000000000000005 /* VibeSyncTheme.swift */,
+                600000000000000000000006 /* IdCardComposerView.swift */,
+                600000000000000000000007 /* Roboto-Variable.ttf */,
+                600000000000000000000008 /* OFL.txt */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";
