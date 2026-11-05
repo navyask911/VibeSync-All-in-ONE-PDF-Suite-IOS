@@ -61,11 +61,17 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Package iOS Simulator app bundle
+        if: success()
+        run: |
+          cd "$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator"
+          ditto -c -k --sequesterRsrc --keepParent VibeSyncIOSApp.app "$RUNNER_TEMP/VibeSyncIOSApp.zip"
+
       - name: Upload iOS Simulator app artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: VibeSyncIOSApp-iOS-Simulator
-          path: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+          path: ${{ runner.temp }}/VibeSyncIOSApp.zip
           if-no-files-found: error
           retention-days: 14
