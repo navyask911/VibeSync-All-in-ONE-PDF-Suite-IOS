@@ -1,0 +1,146 @@
+name: iOS Simulator Stream
+run-name: iOS Simulator Stream · ${{ github.ref_name }} · ${{ github.sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      session_minutes:
+        description: "How long the browser session should stay live (1-350 minutes)"
+        required: false
+        default: 30
+        type: number
+  push:
+    branches:
+      - main
+    paths:
+      - "shared/**"
+      - "iosApp/**"
+      - "android/build.gradle.kts"
+      - "android/settings.gradle.kts"
+      - "android/gradle/**"
+      - "android/gradlew"
+      - ".github/workflows/ios_build.yml"
+      - ".github/workflows/ios_stream.yml"
+
+permissions:
+  contents: write
+  actions: write
+  statuses: write
+
+concurrency:
+  group: ios-stream-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  stream:
+    name: Build and stream VibeSync iOS Simulator
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Show toolchain versions
+        run: |
+          xcodebuild -version
+          java -version
+          node --version
+          gh --version
+
+      - name: Configure bot commit identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Build SwiftUI app and KMP framework
+        run: |
+          set -euo pipefail
+          chmod +x android/gradlew
+          xcodebuild \
+            -project iosApp/VibeSyncIOS.xcodeproj \
+            -scheme VibeSyncIOSApp \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Verify iOS Simulator app bundle
+        env:
+          APP_PATH: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+        run: |
+          set -euo pipefail
+          test -d "$APP_PATH"
+          test -f "$APP_PATH/Info.plist"
+          PLATFORMS=$(/usr/libexec/PlistBuddy -c "Print :CFBundleSupportedPlatforms" "$APP_PATH/Info.plist")
+          echo "$PLATFORMS" | grep -q "iPhoneSimulator"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist")
+          echo "Verified simulator app: $APP_PATH"
+          echo "Bundle identifier: $BUNDLE_ID"
+
+      - name: Install flutter-remote and upload prebuilt app
+        env:
+          APP_PATH: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+        run: |
+          set -euo pipefail
+          npm install --global flutter-remote@0.2.5
+          flutter-remote --version
+          # flutter-remote stores this as VibeSyncIOSApp.app.tar.gz on
+          # the fixed flutter-remote-build GitHub Release.
+          flutter-remote upload "$APP_PATH"
+
+      - name: Start live browser simulator and publish URL
+        env:
+          SESSION_MINUTES: ${{ inputs.session_minutes || 30 }}
+          APP_RELEASE_ASSET: VibeSyncIOSApp.app.tar.gz
+        run: |
+          set -euo pipefail
+          if ! [[ "$SESSION_MINUTES" =~ ^[0-9]+$ ]] || \
+            [ "$SESSION_MINUTES" -lt 1 ] || [ "$SESSION_MINUTES" -gt 350 ]; then
+            echo "::error::session_minutes must be an integer from 1 to 350."
+            exit 1
+          fi
+
+          LOG_FILE="$RUNNER_TEMP/flutter-remote-up.log"
+          flutter-remote up \
+            --app-release "$APP_RELEASE_ASSET" \
+            --minutes "$SESSION_MINUTES" \
+            --public \
+            --no-open 2>&1 | tee "$LOG_FILE"
+
+          # The URL contains a short-lived bearer token. Capture it from the
+          # CLI output so the Actions summary offers a clickable browser link.
+          STREAM_URL=$(grep -Eo 'https://[[:alnum:].-]+\.trycloudflare\.com/\?k=[[:alnum:]_-]+' "$LOG_FILE" | tail -n 1 || true)
+          if [ -z "$STREAM_URL" ]; then
+            echo "::error::flutter-remote did not print a live simulator URL."
+            echo "Check the flutter-remote runner workflow linked in the logs above."
+            exit 1
+          fi
+
+          {
+            echo "## Live VibeSync iOS Simulator"
+            echo
+            echo "[Open the interactive simulator in your browser]($STREAM_URL)"
+            echo
+            echo "- App revision: ${GITHUB_SHA}"
+            echo "- Session limit: ${SESSION_MINUTES} minutes"
+            echo
+            echo "> **Access note:** This is a temporary bearer link. Anyone who can view this public workflow run can use the simulator until the session expires."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Live simulator URL: $STREAM_URL"
