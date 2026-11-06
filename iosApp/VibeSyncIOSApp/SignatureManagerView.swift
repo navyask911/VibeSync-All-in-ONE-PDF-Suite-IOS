@@ -443,7 +443,7 @@ struct SignatureManagerView: View {
         let suggestedName = "\(pdfFileName)-signed.pdf"
         guard
             let stagedURI = IosPlatformProviders.shared.stageExportCopy(
-                data: flattenedData as NSData,
+                data: flattenedData,
                 suggestedFileName: suggestedName
             ),
             let stagedURL = URL(string: stagedURI)
