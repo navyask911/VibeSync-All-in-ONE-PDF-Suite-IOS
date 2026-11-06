@@ -97,6 +97,7 @@
             isa = PBXNativeTarget;
             buildConfigurationList = 500000000000000000000003;
             buildPhases = (
+                400000000000000000000009 /* Wait for Shared Kotlin Framework */,
                 400000000000000000000005 /* Sources */,
                 400000000000000000000006 /* Frameworks */,
                 400000000000000000000007 /* Resources */,
@@ -149,6 +150,18 @@
                 200000000000000000000006 /* OFL.txt in Resources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
+        };
+        400000000000000000000009 /* Wait for Shared Kotlin Framework */ = {
+            isa = PBXShellScriptBuildPhase;
+            alwaysOutOfDate = 1;
+            buildActionMask = 2147483647;
+            files = ();
+            inputPaths = ();
+            name = "Wait for Shared Kotlin Framework";
+            outputPaths = ();
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/sh;
+            shellScript = "set -e\nFRAMEWORK_DIR=\"$SRCROOT/../shared/build/bin/iosSimulatorArm64/debugFramework/Shared.framework\"\nfor attempt in $(seq 1 300); do\n  if [ -d \"$FRAMEWORK_DIR\" ]; then\n    echo \"Shared Kotlin framework is ready: $FRAMEWORK_DIR\"\n    exit 0\n  fi\n  sleep 1\ndone\necho \"::error::Shared Kotlin framework was not produced by the app target.\"\nexit 1\n";
         };
         400000000000000000000005 /* Sources */ = {
             isa = PBXSourcesBuildPhase;
@@ -327,7 +340,6 @@
             isa = PBXGroup;
             children = (
                 60000000000000000000000B /* VibeSyncIOSAppUITests.swift */,
-                60000000000000000000000D /* Shared.framework */,
                 60000000000000000000000E /* XCTest.framework */,
             );
             path = VibeSyncIOSAppUITests;
@@ -402,6 +414,7 @@
         800000000000000000000005 /* Debug */ = {
             isa = XCBuildConfiguration;
             buildSettings = {
+                ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
                 GENERATE_INFOPLIST_FILE = YES;
@@ -421,6 +434,7 @@
         800000000000000000000006 /* Release */ = {
             isa = XCBuildConfiguration;
             buildSettings = {
+                ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
                 GENERATE_INFOPLIST_FILE = YES;
