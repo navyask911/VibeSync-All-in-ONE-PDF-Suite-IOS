@@ -65,10 +65,6 @@
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000E /* XCTest.framework */;
         };
-        2000000000000000000000D /* Shared.framework in Frameworks */ = {
-            isa = PBXBuildFile;
-            fileRef = 60000000000000000000000D /* Shared.framework */;
-        };
         200000000000000000000005 /* Roboto-Variable.ttf in Resources */ = {
             isa = PBXBuildFile;
             fileRef = 600000000000000000000007 /* Roboto-Variable.ttf */;
@@ -97,7 +93,6 @@
             isa = PBXNativeTarget;
             buildConfigurationList = 500000000000000000000003;
             buildPhases = (
-                400000000000000000000009 /* Wait for Shared Kotlin Framework */,
                 400000000000000000000005 /* Sources */,
                 400000000000000000000006 /* Frameworks */,
                 400000000000000000000007 /* Resources */,
@@ -151,18 +146,6 @@
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
-        400000000000000000000009 /* Wait for Shared Kotlin Framework */ = {
-            isa = PBXShellScriptBuildPhase;
-            alwaysOutOfDate = 1;
-            buildActionMask = 2147483647;
-            files = ();
-            inputPaths = ();
-            name = "Wait for Shared Kotlin Framework";
-            outputPaths = ();
-            runOnlyForDeploymentPostprocessing = 0;
-            shellPath = /bin/sh;
-            shellScript = "set -e\nFRAMEWORK_DIR=\"$SRCROOT/../shared/build/bin/iosSimulatorArm64/debugFramework/Shared.framework\"\nfor attempt in $(seq 1 300); do\n  if [ -d \"$FRAMEWORK_DIR\" ]; then\n    echo \"Shared Kotlin framework is ready: $FRAMEWORK_DIR\"\n    exit 0\n  fi\n  sleep 1\ndone\necho \"::error::Shared Kotlin framework was not produced by the app target.\"\nexit 1\n";
-        };
         400000000000000000000005 /* Sources */ = {
             isa = PBXSourcesBuildPhase;
             buildActionMask = 2147483647;
@@ -176,7 +159,6 @@
             buildActionMask = 2147483647;
             files = (
                 20000000000000000000000C /* XCTest.framework in Frameworks */,
-                2000000000000000000000D /* Shared.framework in Frameworks */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -287,13 +269,6 @@
             path = VibeSyncIOSAppUITests.xctest;
             sourceTree = BUILT_PRODUCTS_DIR;
         };
-        60000000000000000000000D /* Shared.framework */ = {
-            isa = PBXFileReference;
-            lastKnownFileType = wrapper.framework;
-            name = Shared.framework;
-            path = "../shared/build/bin/iosSimulatorArm64/debugFramework/Shared.framework";
-            sourceTree = "<group>";
-        };
         60000000000000000000000E /* XCTest.framework */ = {
             isa = PBXFileReference;
             lastKnownFileType = wrapper.framework;
@@ -305,7 +280,6 @@
             isa = PBXGroup;
             children = (
                 700000000000000000000003 /* VibeSyncIOSApp */,
-                60000000000000000000000D /* Shared.framework */,
                 700000000000000000000004 /* VibeSyncIOSAppUITests */,
                 700000000000000000000002 /* Products */,
             );

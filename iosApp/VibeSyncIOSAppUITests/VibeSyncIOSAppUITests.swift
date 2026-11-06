@@ -1,7 +1,4 @@
 import Foundation
-import Shared
-import PDFKit
-import UIKit
 import XCTest
 
 final class VibeSyncIOSAppUITests: XCTestCase {
@@ -41,36 +38,22 @@ final class VibeSyncIOSAppUITests: XCTestCase {
     }
 
     func testPdfKitEngineReadsPdfGeneratedFromDummyImage() throws {
-        let imageSize = CGSize(width: 160, height: 90)
-        let dummyImage = UIGraphicsImageRenderer(size: imageSize).image { renderer in
-            renderer.cgContext.setFillColor(UIColor.white.cgColor)
-            renderer.cgContext.fill(CGRect(origin: .zero, size: imageSize))
-            renderer.cgContext.setFillColor(UIColor.systemBlue.cgColor)
-            renderer.cgContext.fill(CGRect(x: 16, y: 16, width: 128, height: 58))
-        }
+        let app = XCUIApplication()
+        app.launchArguments.append("--pdf-engine-smoke-test")
+        app.launch()
 
-        // Create the page from the image with PDFKit itself, then serialize the document.
-        let pdfPage = try XCTUnwrap(PDFPage(image: dummyImage))
-        let pdfDocument = PDFDocument()
-        pdfDocument.insert(pdfPage, at: 0)
-        let pdfData = try XCTUnwrap(pdfDocument.dataRepresentation())
-
-        XCTAssertGreaterThan(pdfData.count, 0, "The dummy image should generate a non-empty PDF.")
-
-        let pdfURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("VibeSync-PdfEngine-Test-\(UUID().uuidString)")
-            .appendingPathExtension("pdf")
-        defer { try? FileManager.default.removeItem(at: pdfURL) }
-
-        try pdfData.write(to: pdfURL, options: .atomic)
-        let attributes = try FileManager.default.attributesOfItem(atPath: pdfURL.path)
-        let fileSize = (attributes[.size] as? NSNumber)?.intValue ?? 0
-        XCTAssertGreaterThan(fileSize, 0, "The generated PDF file must contain bytes.")
-
-        // This synchronous bridge delegates to the actual shared IosPdfEngine implementation.
-        IosPlatformProviders.shared.install()
-        let pageCount = IosPlatformProviders.shared.pdfPageCount(data: pdfData)
-        XCTAssertEqual(Int(pageCount), 1, "The PDFKit-backed PdfEngine should read the generated one-page PDF.")
+        let result = app.staticTexts["pdf_engine_smoke_result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 20),
+            "The app did not report a result for the PDFKit engine smoke test."
+        )
+        let message = result.label
+        XCTAssertTrue(
+            message.contains("PDF_ENGINE_TEST_PASSED"),
+            "PDFKit engine smoke test failed: \(message)"
+        )
+        XCTAssertTrue(message.contains("bytes="), "The test result must report the non-empty PDF file size.")
+        XCTAssertTrue(message.contains("pages=1"), "The PdfEngine parser must report the generated single page.")
     }
 
     private func attachScreenshot(named name: String, from app: XCUIApplication) {

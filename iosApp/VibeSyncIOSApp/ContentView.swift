@@ -1,6 +1,7 @@
 import Foundation
 import Shared
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 private struct PDFExportDocument: FileDocument {
@@ -37,6 +38,7 @@ struct ContentView: View {
     @State private var exportFileName = "document-copy"
     @State private var statusMessage = "Choose a PDF to view its page count."
     @State private var errorMessage: String?
+    @State private var pdfEngineSmokeResult: String?
 
     var body: some View {
         NavigationStack {
@@ -56,6 +58,15 @@ struct ContentView: View {
                             .vibeSyncStyle(.bodyMedium)
                             .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
                             .accessibilityIdentifier("shared_module_status")
+
+                        if let pdfEngineSmokeResult {
+                            Text(pdfEngineSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(pdfEngineSmokeResult.contains("PDF_ENGINE_TEST_PASSED")
+                                                 ? VibeSyncColors.successGreen
+                                                 : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("pdf_engine_smoke_result")
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -205,6 +216,57 @@ struct ContentView: View {
         .tint(VibeSyncColors.primary(for: colorScheme))
         .onAppear {
             IosPlatformProviders.shared.install()
+            if ProcessInfo.processInfo.arguments.contains("--pdf-engine-smoke-test") {
+                runPdfEngineSmokeTest()
+            }
+        }
+    }
+
+    /// Test-only end-to-end PDFKit creation and the real shared iOS PdfEngine parser.
+    private func runPdfEngineSmokeTest() {
+        do {
+            let imageSize = CGSize(width: 160, height: 90)
+            let dummyImage = UIGraphicsImageRenderer(size: imageSize).image { renderer in
+                renderer.cgContext.setFillColor(UIColor.white.cgColor)
+                renderer.cgContext.fill(CGRect(origin: .zero, size: imageSize))
+                renderer.cgContext.setFillColor(UIColor.systemBlue.cgColor)
+                renderer.cgContext.fill(CGRect(x: 16, y: 16, width: 128, height: 58))
+            }
+
+            let pageBounds = CGRect(x: 0, y: 0, width: 595.2756, height: 841.8898)
+            let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+            let pdfData = renderer.pdfData { context in
+                context.beginPage()
+                dummyImage.draw(in: CGRect(x: 48, y: 48, width: 240, height: 135))
+            }
+            guard !pdfData.isEmpty else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+
+            let pdfURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("VibeSync-PdfEngine-Smoke-\(UUID().uuidString)")
+                .appendingPathExtension("pdf")
+            defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+            try pdfData.write(to: pdfURL, options: .atomic)
+            let attributes = try FileManager.default.attributesOfItem(atPath: pdfURL.path)
+            let fileSize = (attributes[.size] as? NSNumber)?.intValue ?? 0
+            guard fileSize > 0 else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+
+            let pageCount = Int(IosPlatformProviders.shared.pdfPageCount(data: pdfData))
+            guard pageCount == 1 else {
+                throw NSError(
+                    domain: "VibeSyncPdfEngineSmokeTest",
+                    code: 1,
+                    userInfo: [NSLocalizedDescriptionKey: "PdfEngine reported \(pageCount) pages for a one-page PDF."]
+                )
+            }
+
+            pdfEngineSmokeResult = "PDF_ENGINE_TEST_PASSED bytes=\(fileSize) pages=\(pageCount)"
+        } catch {
+            pdfEngineSmokeResult = "PDF_ENGINE_TEST_FAILED \(error.localizedDescription)"
         }
     }
 
