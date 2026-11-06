@@ -52,6 +52,44 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         attachScreenshot(named: "screenshot_signature", from: app)
     }
 
+    func testPDFViewerSearchFindsAndNavigatesDigitalText() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--pdf-viewer-search-test"]
+        app.launch()
+
+        let readerCard = app.buttons["tool_view_read"]
+        XCTAssertTrue(readerCard.waitForExistence(timeout: 15), "View & Read card did not appear.")
+        readerCard.tap()
+
+        let searchField = app.textFields["pdf_viewer_search_field"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 15), "PDFKit reader did not appear.")
+        XCTAssertTrue(app.staticTexts["View & Read"].exists, "Reader title is missing.")
+
+        searchField.tap()
+        searchField.typeText("VibeSync Search Match")
+
+        let searchButton = app.buttons["pdf_viewer_search_submit"]
+        let searchReady = NSPredicate(format: "isEnabled == true")
+        expectation(for: searchReady, evaluatedWith: searchButton)
+        waitForExpectations(timeout: 10)
+        searchButton.tap()
+
+        let resultCount = app.staticTexts["pdf_viewer_search_count"]
+        let twoMatches = NSPredicate(format: "label == %@", "1 of 2 matches")
+        expectation(for: twoMatches, evaluatedWith: resultCount)
+        waitForExpectations(timeout: 10)
+        XCTAssertTrue(app.buttons["pdf_viewer_next_match"].isEnabled, "Next should be enabled when two matches exist.")
+
+        app.buttons["pdf_viewer_next_match"].tap()
+        XCTAssertEqual(resultCount.label, "2 of 2 matches", "Next did not focus the second PDF text match.")
+
+        app.buttons["pdf_viewer_previous_match"].tap()
+        XCTAssertEqual(resultCount.label, "1 of 2 matches", "Previous did not return to the first PDF text match.")
+
+        Thread.sleep(forTimeInterval: 1)
+        attachScreenshot(named: "screenshot_viewer", from: app)
+    }
+
     func testSignatureVaultCanSaveAndLoadWithoutKeychainError() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--signature-vault-smoke-test"]

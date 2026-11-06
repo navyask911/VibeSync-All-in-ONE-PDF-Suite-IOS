@@ -25,6 +25,11 @@ private struct PDFExportDocument: FileDocument {
     }
 }
 
+private struct OpenedPDFDocument {
+    let data: Data
+    let fileName: String
+}
+
 private struct DashboardTool: Identifiable {
     let id: String
     let title: String
@@ -48,6 +53,9 @@ struct ContentView: View {
     @State private var isShowingNotice = false
     @State private var pdfEngineSmokeResult: String?
     @State private var signatureVaultSmokeResult: String?
+    @State private var openedPDFForViewing: OpenedPDFDocument?
+    @State private var isShowingPDFViewer = false
+    @State private var searchTestPDF: OpenedPDFDocument?
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 12),
@@ -157,6 +165,11 @@ struct ContentView: View {
                 Text(noticeMessage)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $isShowingPDFViewer) {
+                if let openedPDFForViewing {
+                    PdfViewerView(pdfData: openedPDFForViewing.data, fileName: openedPDFForViewing.fileName)
+                }
+            }
             .onAppear {
                 IosPlatformProviders.shared.install()
                 let arguments = ProcessInfo.processInfo.arguments
@@ -165,6 +178,9 @@ struct ContentView: View {
                 }
                 if arguments.contains("--signature-vault-smoke-test") {
                     runSignatureVaultSmokeTest()
+                }
+                if arguments.contains("--pdf-viewer-search-test") {
+                    searchTestPDF = makeSearchTestPDF()
                 }
             }
         }
@@ -408,7 +424,11 @@ struct ContentView: View {
     private func handleToolSelection(_ tool: DashboardTool) {
         switch tool.id {
         case "tool_view_read":
-            isImportingPDF = true
+            if let searchTestPDF {
+                openPDFForReading(searchTestPDF)
+            } else {
+                isImportingPDF = true
+            }
         case "tool_edit_sign":
             presentNotice(title: tool.title, message: "PDF annotation and editing tools will be connected in a later iOS phase.")
         case "tool_images_to_pdf":
@@ -444,15 +464,52 @@ struct ContentView: View {
                 throw CocoaError(.fileReadCorruptFile)
             }
 
+            let openedDocument = OpenedPDFDocument(data: data, fileName: url.lastPathComponent)
             selectedPDFData = data
             selectedPDFName = url.deletingPathExtension().lastPathComponent
             pageCount = count
-            presentNotice(title: "PDF opened", message: "\(selectedPDFName) contains \(count) \(count == 1 ? "page" : "pages").")
+            openPDFForReading(openedDocument)
         } catch {
             selectedPDFData = nil
             pageCount = nil
             presentNotice(title: "Could not open PDF", message: error.localizedDescription)
         }
+    }
+
+    private func openPDFForReading(_ document: OpenedPDFDocument) {
+        openedPDFForViewing = document
+        selectedPDFData = document.data
+        selectedPDFName = document.fileName
+        pageCount = PDFDocument(data: document.data)?.pageCount
+        isShowingPDFViewer = true
+    }
+
+    private func makeSearchTestPDF() -> OpenedPDFDocument? {
+        let pageBounds = CGRect(x: 0, y: 0, width: 595.2756, height: 841.8898)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+        let data = renderer.pdfData { context in
+            context.beginPage()
+            let titleAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 27, weight: .bold),
+                .foregroundColor: UIColor.black
+            ]
+            let bodyAttributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 17, weight: .regular),
+                .foregroundColor: UIColor.darkGray
+            ]
+            NSString(string: "VibeSync Searchable Sample")
+                .draw(at: CGPoint(x: 54, y: 70), withAttributes: titleAttributes)
+            NSString(string: "This document contains selectable digital text.")
+                .draw(at: CGPoint(x: 54, y: 132), withAttributes: bodyAttributes)
+            NSString(string: "VibeSync Search Match — result one")
+                .draw(at: CGPoint(x: 54, y: 220), withAttributes: bodyAttributes)
+            NSString(string: "VibeSync Search Match — result two")
+                .draw(at: CGPoint(x: 54, y: 330), withAttributes: bodyAttributes)
+            NSString(string: "Search uses PDFKit and does not require OCR for digital PDFs.")
+                .draw(at: CGPoint(x: 54, y: 440), withAttributes: bodyAttributes)
+        }
+        guard !data.isEmpty else { return nil }
+        return OpenedPDFDocument(data: data, fileName: "VibeSync-Search-Sample.pdf")
     }
 
     private func prepareExportCopy() {
