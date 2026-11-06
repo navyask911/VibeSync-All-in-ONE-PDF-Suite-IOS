@@ -390,11 +390,9 @@
             buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
-                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
                 GENERATE_INFOPLIST_FILE = YES;
                 IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-                OTHER_LDFLAGS = "$(inherited) -framework Shared";
                 PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios.uitests;
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = iphoneos;
@@ -410,11 +408,9 @@
             buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
-                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
                 GENERATE_INFOPLIST_FILE = YES;
                 IPHONEOS_DEPLOYMENT_TARGET = 16.0;
                 LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-                OTHER_LDFLAGS = "$(inherited) -framework Shared";
                 PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios.uitests;
                 PRODUCT_NAME = "$(TARGET_NAME)";
                 SDKROOT = iphoneos;
