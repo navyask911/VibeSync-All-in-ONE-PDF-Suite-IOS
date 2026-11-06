@@ -70,11 +70,25 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=-
 
-          APP_PATH="$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app"
-          APP_ENTITLEMENTS="$RUNNER_TEMP/VibeSyncIOSApp-entitlements.plist"
-          codesign -d --entitlements :- "$APP_PATH" > "$APP_ENTITLEMENTS" 2> "$RUNNER_TEMP/VibeSync-codesign.log"
-          /usr/libexec/PlistBuddy -c "Print :keychain-access-groups:0" "$APP_ENTITLEMENTS"
-          echo "Verified Keychain Sharing entitlement in the signed simulator app."
+          SIMULATED_ENTITLEMENTS="$RUNNER_TEMP/VibeSyncDerivedData/Build/Intermediates.noindex/VibeSyncIOS.build/Debug-iphonesimulator/VibeSyncIOSApp.build/VibeSyncIOSApp.app-Simulated.xcent"
+          test -s "$SIMULATED_ENTITLEMENTS"
+          python3 - "$SIMULATED_ENTITLEMENTS" <<'PY'
+          import plistlib
+          import sys
+
+          with open(sys.argv[1], "rb") as entitlement_file:
+              entitlements = plistlib.load(entitlement_file)
+
+          bundle_identifier = "com.vibesync.toolkit.pdf.ios"
+          access_groups = entitlements.get("keychain-access-groups", [])
+          if not any(group.endswith(bundle_identifier) for group in access_groups):
+              raise SystemExit(
+                  "The simulator app is missing its Keychain access group: "
+                  + repr(access_groups)
+              )
+
+          print("Verified simulator Keychain access group:", access_groups)
+          PY
 
       - name: Package iOS Simulator app bundle
         if: success()
