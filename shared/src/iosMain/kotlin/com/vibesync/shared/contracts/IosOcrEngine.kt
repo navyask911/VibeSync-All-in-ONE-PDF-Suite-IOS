@@ -5,11 +5,11 @@ package com.vibesync.shared.contracts
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
-import platform.Foundation.NSObject
 import platform.Foundation.dataWithBytes
 import platform.UIKit.UIImage
 import platform.Vision.VNImageRequestHandler
 import platform.Vision.VNRecognizeTextRequest
+import platform.Vision.VNRecognizedText
 import platform.Vision.VNRecognizedTextObservation
 import platform.Vision.VNRequestTextRecognitionLevelAccurate
 
@@ -41,12 +41,11 @@ internal class IosOcrEngine : OcrEngine {
 
         val observations = request.results as? List<VNRecognizedTextObservation> ?: emptyList()
         return observations.mapNotNull { observation ->
-            // VNRecognizedText is an Objective-C object. KVC reads its public
-            // NSString property directly and avoids a Kotlin/Native selector
-            // naming mismatch in the generated Vision bindings.
+            // topCandidates is exposed through the Objective-C collection bridge.
+            // Cast to the generated Vision type before reading its NSString property.
             val candidate = observation.topCandidates(1uL)
-                .firstOrNull() as? NSObject
-            (candidate?.valueForKey("string") as? String)
+                .firstOrNull() as? VNRecognizedText
+            candidate?.string
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() }
         }.joinToString("\n")
