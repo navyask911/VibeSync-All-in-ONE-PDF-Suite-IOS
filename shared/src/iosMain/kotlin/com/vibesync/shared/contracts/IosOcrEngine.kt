@@ -5,6 +5,7 @@ package com.vibesync.shared.contracts
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
 import platform.Foundation.NSData
+import platform.Foundation.NSObject
 import platform.Foundation.dataWithBytes
 import platform.UIKit.UIImage
 import platform.Vision.VNImageRequestHandler
@@ -40,9 +41,12 @@ internal class IosOcrEngine : OcrEngine {
 
         val observations = request.results as? List<VNRecognizedTextObservation> ?: emptyList()
         return observations.mapNotNull { observation ->
-            observation.topCandidates(1uL)
-                .firstOrNull()
-                ?.string
+            // VNRecognizedText is an Objective-C object. KVC reads its public
+            // NSString property directly and avoids a Kotlin/Native selector
+            // naming mismatch in the generated Vision bindings.
+            val candidate = observation.topCandidates(1uL)
+                .firstOrNull() as? NSObject
+            (candidate?.valueForKey("string") as? String)
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() }
         }.joinToString("\n")
