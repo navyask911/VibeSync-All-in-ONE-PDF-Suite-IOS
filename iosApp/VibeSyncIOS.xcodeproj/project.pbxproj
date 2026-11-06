@@ -50,18 +50,6 @@
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000A /* SignatureManagerView.swift */;
         };
-        200000000000000000000009 /* SignaturePDFExporter.swift in Sources */ = {
-            isa = PBXBuildFile;
-            fileRef = 60000000000000000000000D /* SignaturePDFExporter.swift */;
-        };
-        20000000000000000000000A /* IosMLKitTranslator.swift in Sources */ = {
-            isa = PBXBuildFile;
-            fileRef = 60000000000000000000000C /* IosMLKitTranslator.swift */;
-        };
-        20000000000000000000000B /* TranslationView.swift in Sources */ = {
-            isa = PBXBuildFile;
-            fileRef = 60000000000000000000000B /* TranslationView.swift */;
-        };
         200000000000000000000005 /* Roboto-Variable.ttf in Resources */ = {
             isa = PBXBuildFile;
             fileRef = 600000000000000000000007 /* Roboto-Variable.ttf */;
@@ -108,9 +96,6 @@
                 200000000000000000000004 /* IdCardComposerView.swift in Sources */,
                 200000000000000000000007 /* SignatureVault.swift in Sources */,
                 200000000000000000000008 /* SignatureManagerView.swift in Sources */,
-                200000000000000000000009 /* SignaturePDFExporter.swift in Sources */,
-                20000000000000000000000A /* IosMLKitTranslator.swift in Sources */,
-                20000000000000000000000B /* TranslationView.swift in Sources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -208,24 +193,6 @@
             path = SignatureManagerView.swift;
             sourceTree = "<group>";
         };
-        60000000000000000000000B /* TranslationView.swift */ = {
-            isa = PBXFileReference;
-            lastKnownFileType = sourcecode.swift;
-            path = TranslationView.swift;
-            sourceTree = "<group>";
-        };
-        60000000000000000000000C /* IosMLKitTranslator.swift */ = {
-            isa = PBXFileReference;
-            lastKnownFileType = sourcecode.swift;
-            path = IosMLKitTranslator.swift;
-            sourceTree = "<group>";
-        };
-        60000000000000000000000D /* SignaturePDFExporter.swift */ = {
-            isa = PBXFileReference;
-            lastKnownFileType = sourcecode.swift;
-            path = SignaturePDFExporter.swift;
-            sourceTree = "<group>";
-        };
         700000000000000000000001 /* Main Group */ = {
             isa = PBXGroup;
             children = (
@@ -252,9 +219,6 @@
                 600000000000000000000008 /* OFL.txt */,
                 600000000000000000000009 /* SignatureVault.swift */,
                 60000000000000000000000A /* SignatureManagerView.swift */,
-                60000000000000000000000B /* TranslationView.swift */,
-                60000000000000000000000C /* IosMLKitTranslator.swift */,
-                60000000000000000000000D /* SignaturePDFExporter.swift */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";

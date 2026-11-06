@@ -1,26 +1,5 @@
-import PDFKit
 import SwiftUI
-import UniformTypeIdentifiers
 import UIKit
-
-private struct SignedPDFDocument: FileDocument {
-    static var readableContentTypes: [UTType] { [.pdf] }
-    let data: Data
-
-    init(data: Data) { self.data = data }
-
-    init(configuration: ReadConfiguration) throws {
-        guard let contents = configuration.file.regularFileContents else {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-        data = contents
-    }
-
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: data)
-    }
-}
-
 
 struct SignatureManagerView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -39,21 +18,11 @@ struct SignatureManagerView: View {
     @State private var statusMessage: String?
     @State private var errorMessage: String?
 
-    @State private var isImportingPDF = false
-    @State private var isExportingSignedPDF = false
-    @State private var isEmbeddingSignature = false
-    @State private var sourcePDFData: Data?
-    @State private var sourcePDFName = "document"
-    @State private var sourcePDFPageCount = 0
-    @State private var currentPDFPage = 0
-    @State private var pdfPagePreview: UIImage?
-    @State private var pdfPageSize = CGSize(width: 612, height: 792)
-    @State private var signedPDFDocument: SignedPDFDocument?
-    @State private var signedPDFFileName = "document-signed"
-
-    @State private var normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-    @State private var dragStartCenter = CGPoint(x: 0.5, y: 0.5)
-    @State private var signatureWidthFraction = 0.28
+    @State private var offsetX: CGFloat = 24
+    @State private var offsetY: CGFloat = 24
+    @State private var dragStartOffsetX: CGFloat = 24
+    @State private var dragStartOffsetY: CGFloat = 24
+    @State private var sizeScale: Double = 1
     @State private var rotationDegrees: Double = 0
 
     var body: some View {
@@ -62,23 +31,6 @@ struct SignatureManagerView: View {
                 Text("Manage and place saved signatures.")
                     .vibeSyncStyle(.bodyMedium)
                     .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
-
-                Button {
-                    isImportingPDF = true
-                } label: {
-                    Label(sourcePDFData == nil ? "Choose PDF to sign" : "Change PDF", systemImage: "doc.badge.plus")
-                        .font(VibeSyncTypography.labelLarge)
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(VibeSyncColors.primary(for: colorScheme))
-                .accessibilityIdentifier("signature_choose_pdf")
-
-                if sourcePDFData != nil {
-                    Text("PDF ready · page \(currentPDFPage + 1) of \(sourcePDFPageCount)")
-                        .vibeSyncStyle(.bodyMedium)
-                        .foregroundStyle(VibeSyncColors.successGreen)
-                }
 
                 if signatures.isEmpty {
                     emptyState
@@ -156,28 +108,6 @@ struct SignatureManagerView: View {
             }
             Button("Cancel", role: .cancel) {
                 deleteTarget = nil
-            }
-        }
-        .fileImporter(
-            isPresented: $isImportingPDF,
-            allowedContentTypes: [.pdf],
-            allowsMultipleSelection: false
-        ) { result in
-            importPDFForSigning(result)
-        }
-        .fileExporter(
-            isPresented: $isExportingSignedPDF,
-            document: signedPDFDocument,
-            contentType: .pdf,
-            defaultFilename: signedPDFFileName
-        ) { result in
-            switch result {
-            case .success:
-                statusMessage = "Signature embedded in the PDF and saved."
-                errorMessage = nil
-            case .failure(let error):
-                statusMessage = nil
-                errorMessage = "The signed PDF was not saved: \(error.localizedDescription)"
             }
         }
         .tint(VibeSyncColors.primary(for: colorScheme))
@@ -280,73 +210,47 @@ struct SignatureManagerView: View {
 
     private func placementControls(for image: UIImage) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Drag the signature into position on the selected PDF page. Adjust its size and rotation, then embed it.")
+            Text("Drag to position, then adjust size and rotation.")
                 .vibeSyncStyle(.bodyMedium)
                 .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
 
-            if let pdfPagePreview {
-                GeometryReader { geometry in
-                    let imageAspect = max(image.size.width / max(image.size.height, 1), 0.1)
-                    ZStack {
-                        Image(uiImage: pdfPagePreview)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: geometry.size.width, height: geometry.size.height)
-
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(
-                                width: geometry.size.width * CGFloat(signatureWidthFraction),
-                                height: geometry.size.width * CGFloat(signatureWidthFraction) / imageAspect
-                            )
-                            .rotationEffect(.degrees(rotationDegrees))
-                            .position(
-                                x: normalizedCenter.x * geometry.size.width,
-                                y: normalizedCenter.y * geometry.size.height
-                            )
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        let nextX = dragStartCenter.x + value.translation.width / max(geometry.size.width, 1)
-                                        let nextY = dragStartCenter.y + value.translation.height / max(geometry.size.height, 1)
-                                        normalizedCenter = CGPoint(
-                                            x: min(max(nextX, 0.04), 0.96),
-                                            y: min(max(nextY, 0.04), 0.96)
-                                        )
-                                    }
-                                    .onEnded { _ in
-                                        dragStartCenter = normalizedCenter
-                                    }
-                            )
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.black.opacity(0.12), lineWidth: 1)
-                    }
+            GeometryReader { geometry in
+                ZStack(alignment: .topLeading) {
+                    Color.clear
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(
+                            width: 160 * sizeScale,
+                            height: 80 * sizeScale
+                        )
+                        .rotationEffect(.degrees(rotationDegrees))
+                        .offset(x: offsetX, y: offsetY)
+                        .gesture(
+                            DragGesture().onChanged { value in
+                                let maxX = max(0, min(220, geometry.size.width - 160 * sizeScale))
+                                let maxY = max(0, min(95, geometry.size.height - 80 * sizeScale))
+                                offsetX = min(max(0, dragStartOffsetX + value.translation.width), maxX)
+                                offsetY = min(max(0, dragStartOffsetY + value.translation.height), maxY)
+                            }
+                            .onEnded { _ in
+                                dragStartOffsetX = offsetX
+                                dragStartOffsetY = offsetY
+                            }
+                        )
                 }
-                .aspectRatio(pdfPageSize.width / max(pdfPageSize.height, 1), contentMode: .fit)
-                .accessibilityIdentifier("signature_placement_canvas")
-
-                if sourcePDFPageCount > 1 {
-                    Stepper(
-                        "PDF page \(currentPDFPage + 1) of \(sourcePDFPageCount)",
-                        value: $currentPDFPage,
-                        in: 0...(sourcePDFPageCount - 1)
-                    )
-                    .onChange(of: currentPDFPage) { _ in
-                        updateSigningPagePreview()
-                    }
-                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .contentShape(Rectangle())
             }
+            .frame(height: 180)
+            .background(VibeSyncColors.surfaceVariant(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .accessibilityIdentifier("signature_placement_canvas")
 
             Text("Signature size")
                 .vibeSyncStyle(.labelLarge)
                 .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
-            Slider(value: $signatureWidthFraction, in: 0.12...0.65)
+            Slider(value: $sizeScale, in: 0.5...2)
                 .tint(VibeSyncColors.primary(for: colorScheme))
                 .accessibilityIdentifier("signature_size_slider")
 
@@ -358,99 +262,16 @@ struct SignatureManagerView: View {
                 .accessibilityIdentifier("signature_rotation_slider")
 
             Button {
-                embedSignatureInPDF(image)
+                statusMessage = "Open a PDF with Edit & Sign to place this signature."
+                errorMessage = nil
             } label: {
-                HStack(spacing: 8) {
-                    if isEmbeddingSignature {
-                        ProgressView().tint(VibeSyncColors.white)
-                    } else {
-                        Image(systemName: "checkmark.seal")
-                    }
-                    Text(isEmbeddingSignature ? "Embedding…" : "Place signature in PDF")
-                        .font(VibeSyncTypography.labelLarge)
-                }
-                .frame(maxWidth: .infinity)
+                Label("Place signature", systemImage: "checkmark.seal")
+                    .font(VibeSyncTypography.labelLarge)
+                    .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(VibeSyncColors.primary(for: colorScheme))
-            .disabled(sourcePDFData == nil || pdfPagePreview == nil || isEmbeddingSignature)
             .accessibilityIdentifier("signature_place_button")
-        }
-    }
-
-    private func importPDFForSigning(_ result: Result<[URL], Error>) {
-        do {
-            guard let url = try result.get().first else { return }
-            let hasScope = url.startAccessingSecurityScopedResource()
-            defer {
-                if hasScope { url.stopAccessingSecurityScopedResource() }
-            }
-
-            let data = try Data(contentsOf: url)
-            guard let document = PDFDocument(data: data), document.pageCount > 0 else {
-                throw SignaturePDFExporter.ExportError.unreadablePDF
-            }
-            guard !document.isLocked else {
-                throw SignaturePDFExporter.ExportError.lockedPDF
-            }
-
-            sourcePDFData = data
-            sourcePDFName = url.deletingPathExtension().lastPathComponent
-            sourcePDFPageCount = document.pageCount
-            currentPDFPage = 0
-            normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-            dragStartCenter = normalizedCenter
-            signatureWidthFraction = 0.28
-            rotationDegrees = 0
-            updateSigningPagePreview()
-            statusMessage = "PDF loaded. Select a saved signature to place it on the page."
-            errorMessage = nil
-        } catch {
-            sourcePDFData = nil
-            sourcePDFPageCount = 0
-            pdfPagePreview = nil
-            statusMessage = nil
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func updateSigningPagePreview() {
-        guard let sourcePDFData else { return }
-        do {
-            let preview = try SignaturePDFExporter.pagePreview(from: sourcePDFData, pageIndex: currentPDFPage)
-            pdfPagePreview = preview.image
-            pdfPageSize = preview.size
-        } catch {
-            pdfPagePreview = nil
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func embedSignatureInPDF(_ image: UIImage) {
-        guard let sourcePDFData else {
-            errorMessage = "Choose a PDF before placing the signature."
-            return
-        }
-        isEmbeddingSignature = true
-        defer { isEmbeddingSignature = false }
-
-        do {
-            let signedData = try SignaturePDFExporter.addingSignature(
-                to: sourcePDFData,
-                signature: image,
-                pageIndex: currentPDFPage,
-                normalizedCenter: normalizedCenter,
-                widthFraction: CGFloat(signatureWidthFraction),
-                rotationDegrees: CGFloat(rotationDegrees)
-            )
-            signedPDFDocument = SignedPDFDocument(data: signedData)
-            signedPDFFileName = "\(sourcePDFName)-signed"
-            statusMessage = "Signature embedded into the PDF. Choose where to save the signed copy."
-            errorMessage = nil
-            isExportingSignedPDF = true
-        } catch {
-            statusMessage = nil
-            errorMessage = error.localizedDescription
         }
     }
 
@@ -461,9 +282,11 @@ struct SignatureManagerView: View {
             }
             selectedSignature = signature
             selectedImage = image
-            normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-            dragStartCenter = normalizedCenter
-            signatureWidthFraction = 0.28
+            offsetX = 24
+            offsetY = 24
+            dragStartOffsetX = 24
+            dragStartOffsetY = 24
+            sizeScale = 1
             rotationDegrees = 0
             statusMessage = nil
             errorMessage = nil
@@ -500,9 +323,11 @@ struct SignatureManagerView: View {
             let saved = SignatureVault.SavedSignature(id: identifier)
             selectedSignature = saved
             selectedImage = image
-            normalizedCenter = CGPoint(x: 0.5, y: 0.5)
-            dragStartCenter = normalizedCenter
-            signatureWidthFraction = 0.28
+            offsetX = 24
+            offsetY = 24
+            dragStartOffsetX = 24
+            dragStartOffsetY = 24
+            sizeScale = 1
             rotationDegrees = 0
             statusMessage = "Signature saved securely."
             errorMessage = nil

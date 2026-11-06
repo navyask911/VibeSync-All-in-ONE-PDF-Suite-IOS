@@ -8,21 +8,20 @@ import platform.Foundation.NSData
 import platform.Foundation.getBytes
 
 /**
- * iOS registration and Swift-friendly entry points for PDF, Vision OCR and file export.
+ * iOS registration and Swift-friendly entry points for the PDF picker/export slice.
  *
- * PDFKit, Vision and the file exporter are registered in the common provider registry.
- * Translation is supplied by the native Swift ML Kit adapter because the iOS SDK ships as a Pod.
+ * The PDF engine and file exporter are registered in the common provider registry.
+ * All other platform contracts intentionally remain uninstalled in this phase.
  */
 object IosPlatformProviders {
     private val pdfEngine = IosPdfEngine()
-    private val ocrEngine = IosOcrEngine()
     private val fileExporter = IosFileExporter()
 
-    /** Register the iOS PDFKit, Vision and temporary-file adapters with commonMain. */
+    /** Register the iOS PDFKit and temporary-file adapters with commonMain. */
     fun install() {
         PlatformProviders.install(
             pdfEngine,
-            ocrEngine,
+            null,
             null,
             null,
             null,
@@ -33,10 +32,6 @@ object IosPlatformProviders {
     /** Synchronous bridge used by the SwiftUI picker flow. Zero means the PDF was unreadable. */
     fun pdfPageCount(data: NSData): Int =
         runCatching { pdfEngine.pageCountSync(data.toByteArrayForBridge()) }.getOrDefault(0)
-
-    /** Synchronous Vision bridge used by the SwiftUI image/PDF OCR flow. */
-    fun recognizeText(data: NSData, languageTag: String?): String =
-        ocrEngine.recognizeSync(data.toByteArrayForBridge(), languageTag)
 
     /** Stages a copy for SwiftUI fileExporter; null means the staging write failed. */
     fun stageExportCopy(data: NSData, suggestedFileName: String): String? =

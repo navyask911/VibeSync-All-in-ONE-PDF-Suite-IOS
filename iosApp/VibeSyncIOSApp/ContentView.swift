@@ -39,24 +39,6 @@ struct ContentView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        Group {
-            if ProcessInfo.processInfo.arguments.contains("--snapshot-id-card") {
-                NavigationStack { IdCardComposerView() }
-            } else if ProcessInfo.processInfo.arguments.contains("--snapshot-signature") {
-                NavigationStack { SignatureManagerView() }
-            } else if ProcessInfo.processInfo.arguments.contains("--snapshot-translation") {
-                NavigationStack { TranslationView() }
-            } else {
-                dashboard
-            }
-        }
-        .tint(VibeSyncColors.primary(for: colorScheme))
-        .onAppear {
-            IosPlatformProviders.shared.install()
-        }
-    }
-
-    private var dashboard: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -144,38 +126,6 @@ struct ContentView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("tool_signature_manager")
 
-                    NavigationLink {
-                        TranslationView()
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(systemName: "character.book.closed")
-                                .font(.system(size: 26, weight: .medium))
-                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
-                                .frame(width: 48, height: 48)
-                                .background(VibeSyncColors.white.opacity(0.8))
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("OCR & Translation")
-                                    .vibeSyncStyle(.titleMedium)
-                                    .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
-                                Text("Extract text from images and PDFs, then translate")
-                                    .vibeSyncStyle(.bodyMedium)
-                                    .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
-                            }
-
-                            Spacer(minLength: 4)
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(VibeSyncColors.primary(for: colorScheme))
-                        }
-                        .padding(14)
-                        .background(VibeSyncColors.surfaceVariant(for: colorScheme))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("tool_translation")
-
                     Divider()
 
                     Text("PDF")
@@ -251,6 +201,10 @@ struct ContentView: View {
                     errorMessage = error.localizedDescription
                 }
             }
+        }
+        .tint(VibeSyncColors.primary(for: colorScheme))
+        .onAppear {
+            IosPlatformProviders.shared.install()
         }
     }
 
