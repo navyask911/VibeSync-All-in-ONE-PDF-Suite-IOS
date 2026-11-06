@@ -1,4 +1,5 @@
 import Foundation
+import PDFKit
 import Shared
 import SwiftUI
 import UIKit
