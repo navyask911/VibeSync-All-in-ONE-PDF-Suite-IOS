@@ -45,32 +45,11 @@ jobs:
           xcodebuild -version
           java -version
 
-      - name: Build SwiftUI app and KMP framework
-        run: |
-          chmod +x android/gradlew
-          xcodebuild \
-            -project iosApp/VibeSyncIOS.xcodeproj \
-            -scheme VibeSyncIOSApp \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
-            CODE_SIGNING_ALLOWED=NO \
-            build
-
-      - name: Package iOS Simulator app bundle
-        if: success()
-        run: |
-          cd "$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator"
-          ditto -c -k --sequesterRsrc --keepParent VibeSyncIOSApp.app "$RUNNER_TEMP/VibeSyncIOSApp.zip"
-
-      - name: Capture iOS Simulator screenshot
-        env:
-          APP_PATH: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+      - name: Run iOS navigation UI tests and PDF engine XCTest
         run: |
           set -euo pipefail
-          test -d "$APP_PATH"
+          chmod +x android/gradlew
 
-          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist")
           DEVICE_UDID=$(xcrun simctl list devices available | sed -nE 's/^[[:space:]]*(iPhone[^()]*) \(([0-9A-Fa-f-]{36})\) .*/\2/p' | head -n 1)
           if [ -z "$DEVICE_UDID" ]; then
             echo "::error::No available iPhone Simulator was found."
@@ -78,32 +57,93 @@ jobs:
             exit 1
           fi
 
-          echo "Booting iPhone Simulator: $DEVICE_UDID"
-          xcrun simctl boot "$DEVICE_UDID"
-          xcrun simctl bootstatus "$DEVICE_UDID" -b
-          xcrun simctl install booted "$APP_PATH"
-          xcrun simctl launch booted "$BUNDLE_ID"
-          sleep 4
-          xcrun simctl io booted screenshot screenshot_main.png
-          test -s screenshot_main.png
-          file screenshot_main.png
+          RESULT_BUNDLE="$RUNNER_TEMP/VibeSyncIOSUITests.xcresult"
+          xcodebuild test \
+            -project iosApp/VibeSyncIOS.xcodeproj \
+            -scheme VibeSyncIOSApp \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$DEVICE_UDID" \
+            -parallel-testing-enabled NO \
+            -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            CODE_SIGNING_ALLOWED=NO
 
-      - name: Commit screenshot to repository
+      - name: Package iOS Simulator app bundle
+        if: success()
+        run: |
+          cd "$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator"
+          ditto -c -k --sequesterRsrc --keepParent VibeSyncIOSApp.app "$RUNNER_TEMP/VibeSyncIOSApp.zip"
+
+      - name: Export screenshots captured by automated navigation taps
+        run: |
+          set -euo pipefail
+          RESULT_BUNDLE="$RUNNER_TEMP/VibeSyncIOSUITests.xcresult"
+          ATTACHMENT_DIR="$RUNNER_TEMP/VibeSyncUITestAttachments"
+          mkdir -p "$ATTACHMENT_DIR" screenshots
+
+          xcrun xcresulttool export attachments \
+            --path "$RESULT_BUNDLE" \
+            --output-path "$ATTACHMENT_DIR"
+
+          python3 - "$ATTACHMENT_DIR" "$GITHUB_WORKSPACE/screenshots" <<'PY'
+          import json
+          import os
+          import shutil
+          import sys
+
+          attachment_dir, screenshot_dir = sys.argv[1:3]
+          manifest_path = os.path.join(attachment_dir, "manifest.json")
+          with open(manifest_path, encoding="utf-8") as manifest_file:
+              entries = json.load(manifest_file)
+
+          required = {
+              "screenshot_id_card": "screenshot_id_card.png",
+              "screenshot_signature": "screenshot_signature.png",
+          }
+          exported = {}
+          for entry in entries:
+              for attachment in entry.get("attachments", []):
+                  readable_name = attachment.get("suggestedHumanReadableName", "")
+                  exported_name = attachment.get("exportedFileName", "")
+                  if not exported_name:
+                      continue
+                  for key, filename in required.items():
+                      if key in readable_name.lower():
+                          source = os.path.join(attachment_dir, exported_name)
+                          if os.path.isfile(source):
+                              target = os.path.join(screenshot_dir, filename)
+                              shutil.copy2(source, target)
+                              exported[key] = target
+
+          missing = sorted(set(required) - set(exported))
+          if missing:
+              raise SystemExit(
+                  "Missing expected UI screenshots: " + ", ".join(missing)
+                  + ". Exported manifest: " + json.dumps(entries)
+              )
+
+          for key, path in exported.items():
+              if os.path.getsize(path) <= 0:
+                  raise SystemExit("Screenshot is empty: " + path)
+              print(f"{key}: {path} ({os.path.getsize(path)} bytes)")
+          PY
+
+          file screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
+
+      - name: Commit internal feature screenshots to repository
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && success()
         run: |
           set -euo pipefail
-          mkdir -p screenshots
-          cp screenshot_main.png screenshots/screenshot_main.png
-          git add screenshots/screenshot_main.png
+          git add screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
 
           if git diff --cached --quiet; then
-            echo "Screenshot is unchanged; skipping commit."
+            echo "Feature screenshots are unchanged; skipping commit."
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "ci(ios): publish simulator screenshot"
+          git commit -m "ci(ios): publish ID card and signature screenshots"
           git push origin "HEAD:main"
 
       - name: Upload iOS Simulator screenshot
@@ -111,7 +151,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: VibeSyncIOS-Simulator-Screenshot
-          path: screenshot_main.png
+          path: |
+            screenshots/screenshot_id_card.png
+            screenshots/screenshot_signature.png
           if-no-files-found: error
           retention-days: 14
 

@@ -13,6 +13,10 @@
                     300000000000000000000001 = {
                         CreatedOnToolsVersion = 16.0;
                     };
+                    300000000000000000000002 = {
+                        CreatedOnToolsVersion = 16.0;
+                        TestTargetID = 300000000000000000000001;
+                    };
                 };
             };
             buildConfigurationList = 500000000000000000000001;
@@ -24,7 +28,10 @@
             productRefGroup = 700000000000000000000002;
             projectDirPath = "";
             projectRoot = "";
-            targets = (300000000000000000000001 /* VibeSyncIOSApp */,);
+            targets = (
+            300000000000000000000001 /* VibeSyncIOSApp */,
+            300000000000000000000002 /* VibeSyncIOSAppUITests */,
+        );
         };
         200000000000000000000001 /* ContentView.swift in Sources */ = {
             isa = PBXBuildFile;
@@ -50,6 +57,18 @@
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000A /* SignatureManagerView.swift */;
         };
+        20000000000000000000000B /* VibeSyncIOSAppUITests.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 60000000000000000000000B /* VibeSyncIOSAppUITests.swift */;
+        };
+        20000000000000000000000C /* XCTest.framework in Frameworks */ = {
+            isa = PBXBuildFile;
+            fileRef = 60000000000000000000000E /* XCTest.framework */;
+        };
+        2000000000000000000000D /* Shared.framework in Frameworks */ = {
+            isa = PBXBuildFile;
+            fileRef = 60000000000000000000000D /* Shared.framework */;
+        };
         200000000000000000000005 /* Roboto-Variable.ttf in Resources */ = {
             isa = PBXBuildFile;
             fileRef = 600000000000000000000007 /* Roboto-Variable.ttf */;
@@ -73,6 +92,23 @@
             productName = VibeSyncIOSApp;
             productReference = 600000000000000000000003 /* VibeSyncIOSApp.app */;
             productType = "com.apple.product-type.application";
+        };
+        300000000000000000000002 /* VibeSyncIOSAppUITests */ = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = 500000000000000000000003;
+            buildPhases = (
+                400000000000000000000005 /* Sources */,
+                400000000000000000000006 /* Frameworks */,
+                400000000000000000000007 /* Resources */,
+            );
+            buildRules = ();
+            dependencies = (
+                900000000000000000000002 /* PBXTargetDependency */,
+            );
+            name = VibeSyncIOSAppUITests;
+            productName = VibeSyncIOSAppUITests;
+            productReference = 60000000000000000000000C /* VibeSyncIOSAppUITests.xctest */;
+            productType = "com.apple.product-type.bundle.ui-testing";
         };
         400000000000000000000001 /* Build Shared Kotlin Framework */ = {
             isa = PBXShellScriptBuildPhase;
@@ -114,6 +150,29 @@
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
+        400000000000000000000005 /* Sources */ = {
+            isa = PBXSourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = (
+                20000000000000000000000B /* VibeSyncIOSAppUITests.swift in Sources */,
+            );
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        400000000000000000000006 /* Frameworks */ = {
+            isa = PBXFrameworksBuildPhase;
+            buildActionMask = 2147483647;
+            files = (
+                20000000000000000000000C /* XCTest.framework in Frameworks */,
+                2000000000000000000000D /* Shared.framework in Frameworks */,
+            );
+            runOnlyForDeploymentPostprocessing = 0;
+        };
+        400000000000000000000007 /* Resources */ = {
+            isa = PBXResourcesBuildPhase;
+            buildActionMask = 2147483647;
+            files = ();
+            runOnlyForDeploymentPostprocessing = 0;
+        };
         500000000000000000000001 /* Project Build Configuration List */ = {
             isa = XCConfigurationList;
             buildConfigurations = (
@@ -128,6 +187,15 @@
             buildConfigurations = (
                 800000000000000000000003 /* Debug */,
                 800000000000000000000004 /* Release */,
+            );
+            defaultConfigurationIsVisible = 0;
+            defaultConfigurationName = Release;
+        };
+        500000000000000000000003 /* UI Test Target Build Configuration List */ = {
+            isa = XCConfigurationList;
+            buildConfigurations = (
+                800000000000000000000005 /* Debug */,
+                800000000000000000000006 /* Release */,
             );
             defaultConfigurationIsVisible = 0;
             defaultConfigurationName = Release;
@@ -193,17 +261,49 @@
             path = SignatureManagerView.swift;
             sourceTree = "<group>";
         };
+        60000000000000000000000B /* VibeSyncIOSAppUITests.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = VibeSyncIOSAppUITests.swift;
+            sourceTree = "<group>";
+        };
+        60000000000000000000000C /* VibeSyncIOSAppUITests.xctest */ = {
+            isa = PBXFileReference;
+            explicitFileType = wrapper.cfbundle;
+            includeInIndex = 0;
+            path = VibeSyncIOSAppUITests.xctest;
+            sourceTree = BUILT_PRODUCTS_DIR;
+        };
+        60000000000000000000000D /* Shared.framework */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = wrapper.framework;
+            name = Shared.framework;
+            path = "../shared/build/bin/iosSimulatorArm64/debugFramework/Shared.framework";
+            sourceTree = "<group>";
+        };
+        60000000000000000000000E /* XCTest.framework */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = wrapper.framework;
+            name = XCTest.framework;
+            path = Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/XCTest.framework;
+            sourceTree = DEVELOPER_DIR;
+        };
         700000000000000000000001 /* Main Group */ = {
             isa = PBXGroup;
             children = (
                 700000000000000000000003 /* VibeSyncIOSApp */,
+                60000000000000000000000D /* Shared.framework */,
+                700000000000000000000004 /* VibeSyncIOSAppUITests */,
                 700000000000000000000002 /* Products */,
             );
             sourceTree = "<group>";
         };
         700000000000000000000002 /* Products */ = {
             isa = PBXGroup;
-            children = (600000000000000000000003 /* VibeSyncIOSApp.app */,);
+            children = (
+                600000000000000000000003 /* VibeSyncIOSApp.app */,
+                60000000000000000000000C /* VibeSyncIOSAppUITests.xctest */,
+            );
             name = Products;
             sourceTree = "<group>";
         };
@@ -221,6 +321,16 @@
                 60000000000000000000000A /* SignatureManagerView.swift */,
             );
             path = VibeSyncIOSApp;
+            sourceTree = "<group>";
+        };
+        700000000000000000000004 /* VibeSyncIOSAppUITests */ = {
+            isa = PBXGroup;
+            children = (
+                60000000000000000000000B /* VibeSyncIOSAppUITests.swift */,
+                60000000000000000000000D /* Shared.framework */,
+                60000000000000000000000E /* XCTest.framework */,
+            );
+            path = VibeSyncIOSAppUITests;
             sourceTree = "<group>";
         };
         800000000000000000000001 /* Debug */ = {
@@ -289,6 +399,56 @@
             };
             name = Release;
         };
+        800000000000000000000005 /* Debug */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_STYLE = Automatic;
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -framework Shared";
+                PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios.uitests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = VibeSyncIOSApp;
+            };
+            name = Debug;
+        };
+        800000000000000000000006 /* Release */ = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_STYLE = Automatic;
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+                LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+                OTHER_LDFLAGS = "$(inherited) -framework Shared";
+                PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios.uitests;
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SDKROOT = iphoneos;
+                SUPPORTED_PLATFORMS = "iphonesimulator";
+                SWIFT_VERSION = 5.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = VibeSyncIOSApp;
+            };
+            name = Release;
+        };
     };
+        900000000000000000000001 /* PBXContainerItemProxy */ = {
+            isa = PBXContainerItemProxy;
+            containerPortal = 100000000000000000000001 /* Project object */;
+            proxyType = 1;
+            remoteGlobalIDString = 300000000000000000000001;
+            remoteInfo = VibeSyncIOSApp;
+        };
+        900000000000000000000002 /* PBXTargetDependency */ = {
+            isa = PBXTargetDependency;
+            target = 300000000000000000000001 /* VibeSyncIOSApp */;
+            targetProxy = 900000000000000000000001 /* PBXContainerItemProxy */;
+        };
     rootObject = 100000000000000000000001 /* Project object */;
 }
