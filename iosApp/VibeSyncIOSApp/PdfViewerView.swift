@@ -121,7 +121,7 @@ struct PdfViewerView: View {
                     .autocorrectionDisabled()
                     .submitLabel(.search)
                     .accessibilityIdentifier("pdf_viewer_search_field")
-                    .onSubmit(perform: performSearch)
+                    .onSubmit { performSearch() }
 
                 if !searchText.isEmpty {
                     Button {
@@ -263,7 +263,7 @@ struct PdfViewerView: View {
 
     private func changeZoom(by multiplier: CGFloat) {
         guard let pdfView else { return }
-        let fitScale = max(pdfView.minScaleFactor, pdfView.autoScaleFactor)
+        let fitScale = max(pdfView.minScaleFactor, 0.01)
         let maximum = max(fitScale, fitScale * 4)
         pdfView.scaleFactor = min(maximum, max(fitScale, pdfView.scaleFactor * multiplier))
     }
@@ -284,7 +284,7 @@ private struct PDFKitReaderView: UIViewRepresentable {
         pdfView.displaysPageBreaks = true
         pdfView.pageBreakMargins = UIEdgeInsets(top: 10, left: 8, bottom: 10, right: 8)
         pdfView.autoScales = true
-        pdfView.maxScaleFactor = max(pdfView.autoScaleFactor, pdfView.minScaleFactor) * 4
+        pdfView.maxScaleFactor = max(0.01, pdfView.minScaleFactor) * 4
         DispatchQueue.main.async {
             onReady(pdfView)
         }
@@ -295,7 +295,7 @@ private struct PDFKitReaderView: UIViewRepresentable {
         if pdfView.document !== document {
             pdfView.document = document
             pdfView.autoScales = true
-            pdfView.maxScaleFactor = max(pdfView.autoScaleFactor, pdfView.minScaleFactor) * 4
+            pdfView.maxScaleFactor = max(0.01, pdfView.minScaleFactor) * 4
         }
     }
 }
