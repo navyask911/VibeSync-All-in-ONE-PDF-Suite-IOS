@@ -49,11 +49,21 @@ jobs:
           xcodebuild -version
           java -version
 
+      - name: Install iOS CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          if ! command -v pod >/dev/null 2>&1; then
+            sudo gem install cocoapods --no-document
+          fi
+          pod --version
+          pod install --project-directory=iosApp --repo-update
+
       - name: Build SwiftUI app and KMP framework
         run: |
+          set -euo pipefail
           chmod +x android/gradlew
           xcodebuild \
-            -project iosApp/VibeSyncIOS.xcodeproj \
+            -workspace iosApp/VibeSyncIOS.xcworkspace \
             -scheme VibeSyncIOSApp \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
@@ -66,6 +76,66 @@ jobs:
         run: |
           cd "$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator"
           ditto -c -k --sequesterRsrc --keepParent VibeSyncIOSApp.app "$RUNNER_TEMP/VibeSyncIOSApp.zip"
+
+      - name: Capture iOS simulator UI screenshots
+        env:
+          APP_PATH: ${{ runner.temp }}/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app
+        run: |
+          set -euo pipefail
+          test -d "$APP_PATH"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist")
+          DEVICE_LINE=$(xcrun simctl list devices available | grep -F "iPhone 15 (" | head -1 || true)
+          if [ -n "$DEVICE_LINE" ]; then
+            UDID=$(printf '%s' "$DEVICE_LINE" | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+            xcrun simctl boot "iPhone 15" 2>/dev/null || xcrun simctl boot "$UDID"
+          else
+            UDID=$(xcrun simctl list devices available | grep -E 'iPhone[^()]*\([0-9A-Fa-f-]{36}\)' | head -1 | sed -E 's/.*\(([0-9A-Fa-f-]{36})\).*/\1/')
+            [ -n "$UDID" ] || { echo "::error::No available iPhone Simulator was found."; exit 1; }
+            xcrun simctl boot "$UDID"
+          fi
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP_PATH"
+          xcrun simctl status_bar "$UDID" override --time "9:41" --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
+          SCREENSHOT_DIR="$RUNNER_TEMP/VibeSyncIOS-Screenshots"
+          mkdir -p "$SCREENSHOT_DIR"
+
+          xcrun simctl ui "$UDID" appearance light
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          sleep 3
+          xcrun simctl io "$UDID" screenshot "$SCREENSHOT_DIR/screenshot_home.png"
+
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --snapshot-id-card
+          sleep 3
+          xcrun simctl io "$UDID" screenshot "$SCREENSHOT_DIR/screenshot_id_card_composer.png"
+
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --snapshot-signature
+          sleep 3
+          xcrun simctl io "$UDID" screenshot "$SCREENSHOT_DIR/screenshot_signature_manager.png"
+
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl launch "$UDID" "$BUNDLE_ID" --snapshot-translation
+          sleep 3
+          xcrun simctl io "$UDID" screenshot "$SCREENSHOT_DIR/screenshot_translation.png"
+
+          xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+          xcrun simctl ui "$UDID" appearance dark
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          sleep 3
+          xcrun simctl io "$UDID" screenshot "$SCREENSHOT_DIR/screenshot_home_dark.png"
+          xcrun simctl ui "$UDID" appearance light
+          echo "Captured screenshots:"
+          ls -lh "$SCREENSHOT_DIR"
+
+      - name: Upload visual screenshot artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeSyncIOS-Visual-Screenshots
+          path: ${{ runner.temp }}/VibeSyncIOS-Screenshots/*.png
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload iOS Simulator app artifact
         if: success()

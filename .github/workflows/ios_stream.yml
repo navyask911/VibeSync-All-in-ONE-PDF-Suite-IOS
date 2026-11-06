@@ -70,12 +70,21 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Install iOS CocoaPods dependencies
+        run: |
+          set -euo pipefail
+          if ! command -v pod >/dev/null 2>&1; then
+            sudo gem install cocoapods --no-document
+          fi
+          pod --version
+          pod install --project-directory=iosApp --repo-update
+
       - name: Build SwiftUI app and KMP framework
         run: |
           set -euo pipefail
           chmod +x android/gradlew
           xcodebuild \
-            -project iosApp/VibeSyncIOS.xcodeproj \
+            -workspace iosApp/VibeSyncIOS.xcworkspace \
             -scheme VibeSyncIOSApp \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \

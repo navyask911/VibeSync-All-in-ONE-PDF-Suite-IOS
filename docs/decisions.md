@@ -26,3 +26,14 @@ References:
 The product accepts dropping iOS 15.x devices and older unsupported devices in exchange for native NavigationStack and a consistent iOS 16.0 platform baseline. An expected **95%+ device reach** is accepted as a launch-planning assumption for this new app; it is not a measurement from this repository's analytics and should be checked against launch-market device data.
 
 Reverting the app minimum to iOS 15 would require an **AdaptiveNavigation wrapper** that uses NavigationStack on iOS 16+ and a compatible NavigationView fallback on iOS 15. The Xcode app and Kotlin/Native framework deployment targets would both need to be lowered together.
+
+
+## 2026-11-06 — iOS visual verification, PDF signatures and OCR translation
+
+**Status:** Implemented in the iOS target.
+
+- CI boots an iOS Simulator, installs and launches VibeSync, and uploads light/dark home plus ID Card Composer, Signature Manager and Translation screen screenshots as the `VibeSyncIOS-Visual-Screenshots` artifact.
+- Signature Manager now imports an existing PDF, previews a selected page, lets the user place/size/rotate a saved Keychain signature, embeds the image into a new multi-page PDF with PDFKit and UIGraphicsPDFRenderer, and presents the system save picker.
+- The common iOS `OcrEngine` provider is backed by Apple Vision (`VNRecognizeTextRequest`) and wired to image/PDF imports.
+- `IosMLKitTranslator` uses Google ML Kit Translation with on-device language models. The UI discloses model downloads and restricts them to Wi-Fi.
+- Both iOS build and simulator-stream workflows install CocoaPods and build the generated Xcode workspace. No Android app sources are modified.
