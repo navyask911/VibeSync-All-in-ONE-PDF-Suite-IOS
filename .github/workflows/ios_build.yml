@@ -66,7 +66,15 @@ jobs:
             -parallel-testing-enabled NO \
             -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
             -resultBundlePath "$RESULT_BUNDLE" \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=YES \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=-
+
+          APP_PATH="$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator/VibeSyncIOSApp.app"
+          APP_ENTITLEMENTS="$RUNNER_TEMP/VibeSyncIOSApp-entitlements.plist"
+          codesign -d --entitlements :- "$APP_PATH" > "$APP_ENTITLEMENTS" 2> "$RUNNER_TEMP/VibeSync-codesign.log"
+          /usr/libexec/PlistBuddy -c "Print :keychain-access-groups:0" "$APP_ENTITLEMENTS"
+          echo "Verified Keychain Sharing entitlement in the signed simulator app."
 
       - name: Package iOS Simulator app bundle
         if: success()
@@ -97,6 +105,7 @@ jobs:
               entries = json.load(manifest_file)
 
           required = {
+              "screenshot_dashboard": "screenshot_dashboard.png",
               "screenshot_id_card": "screenshot_id_card.png",
               "screenshot_signature": "screenshot_signature.png",
           }
@@ -128,13 +137,13 @@ jobs:
               print(f"{key}: {path} ({os.path.getsize(path)} bytes)")
           PY
 
-          file screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
+          file screenshots/screenshot_dashboard.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
 
       - name: Commit internal feature screenshots to repository
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && success()
         run: |
           set -euo pipefail
-          git add screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
+          git add screenshots/screenshot_dashboard.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
 
           if git diff --cached --quiet; then
             echo "Feature screenshots are unchanged; skipping commit."
@@ -152,6 +161,7 @@ jobs:
         with:
           name: VibeSyncIOS-Simulator-Screenshot
           path: |
+            screenshots/screenshot_dashboard.png
             screenshots/screenshot_id_card.png
             screenshots/screenshot_signature.png
           if-no-files-found: error

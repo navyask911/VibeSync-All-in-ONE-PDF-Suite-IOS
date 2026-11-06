@@ -41,7 +41,7 @@ final class SignatureVault {
 
         var item = baseQuery(account: account(for: normalized))
         item[kSecAttrLabel as String] = normalized
-        item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         item[kSecValueData as String] = pngData
 
         let status = SecItemAdd(item as CFDictionary, nil)
@@ -109,7 +109,8 @@ final class SignatureVault {
 
         let attributes: [String: Any] = [
             kSecAttrAccount as String: account(for: newName),
-            kSecAttrLabel as String: newName
+            kSecAttrLabel as String: newName,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
         let status = SecItemUpdate(oldQuery as CFDictionary, attributes as CFDictionary)
         if status == errSecItemNotFound || status == errSecDuplicateItem { return false }
@@ -131,6 +132,9 @@ final class SignatureVault {
         accountPrefix + identifier
     }
 
+    // The app's default access group is granted by VibeSyncIOS.entitlements.
+    // Accessibility is an item attribute (set on add/update), not a SecItemCopyMatching
+    // search predicate; lookups therefore inherit the stored item's access policy.
     private func baseQuery(account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,

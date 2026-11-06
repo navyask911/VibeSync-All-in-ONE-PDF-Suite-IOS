@@ -12,6 +12,11 @@
                 TargetAttributes = {
                     300000000000000000000001 = {
                         CreatedOnToolsVersion = 16.0;
+                        SystemCapabilities = {
+                            com.apple.Keychain = {
+                                enabled = 1;
+                            };
+                        };
                     };
                     300000000000000000000002 = {
                         CreatedOnToolsVersion = 16.0;
@@ -269,6 +274,12 @@
             path = VibeSyncIOSAppUITests.xctest;
             sourceTree = BUILT_PRODUCTS_DIR;
         };
+        60000000000000000000000D /* VibeSyncIOS.entitlements */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = text.plist.entitlements;
+            path = VibeSyncIOS.entitlements;
+            sourceTree = "<group>";
+        };
         60000000000000000000000E /* XCTest.framework */ = {
             isa = PBXFileReference;
             lastKnownFileType = wrapper.framework;
@@ -306,6 +317,7 @@
                 600000000000000000000008 /* OFL.txt */,
                 600000000000000000000009 /* SignatureVault.swift */,
                 60000000000000000000000A /* SignatureManagerView.swift */,
+                60000000000000000000000D /* VibeSyncIOS.entitlements */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";
@@ -348,6 +360,7 @@
             buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
+                CODE_SIGN_ENTITLEMENTS = VibeSyncIOSApp/VibeSyncIOS.entitlements;
                 CURRENT_PROJECT_VERSION = 1;
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
                 GENERATE_INFOPLIST_FILE = NO;
@@ -369,6 +382,7 @@
             buildSettings = {
                 ARCHS = arm64;
                 CODE_SIGN_STYLE = Automatic;
+                CODE_SIGN_ENTITLEMENTS = VibeSyncIOSApp/VibeSyncIOS.entitlements;
                 CURRENT_PROJECT_VERSION = 1;
                 FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
                 GENERATE_INFOPLIST_FILE = NO;
