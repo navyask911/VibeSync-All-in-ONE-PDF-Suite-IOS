@@ -232,7 +232,36 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "ci(ios): publish ID card and signature screenshots"
-          git push origin "HEAD:main"
+
+          # The iOS streaming workflow may publish a bot commit to main while
+          # this simulator job is running. Rebase our generated assets onto the
+          # newest main before pushing, and retry if another bot wins the race.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            if ! git rebase origin/main; then
+              git rebase --abort
+              echo "Rebase conflicted while publishing screenshots (attempt $attempt/5)."
+              if [ "$attempt" -eq 5 ]; then
+                echo "::error::Unable to rebase screenshot publication onto origin/main."
+                exit 1
+              fi
+              sleep $((attempt * 2))
+              continue
+            fi
+
+            if git push origin "HEAD:main"; then
+              echo "Published feature screenshots to the latest main."
+              exit 0
+            fi
+
+            echo "main advanced during screenshot push (attempt $attempt/5); retrying."
+            if [ "$attempt" -lt 5 ]; then
+              sleep $((attempt * 2))
+            fi
+          done
+
+          echo "::error::Unable to publish screenshots after five retries."
+          exit 1
 
       - name: Upload iOS Simulator screenshot
         if: success()
