@@ -90,6 +90,57 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         attachScreenshot(named: "screenshot_viewer", from: app)
     }
 
+    func testVisionOcrRecognizesTextInImageOnlyPdf() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ocr-engine-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["ocr_engine_smoke_result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 60), "Vision OCR engine did not report a test result.")
+        XCTAssertTrue(
+            result.label.contains("OCR_ENGINE_TEST_PASSED"),
+            "Vision OCR failed to read the raster-only PDF: \(result.label)"
+        )
+        XCTAssertTrue(result.label.contains("HELLO"), "OCR result did not contain HELLO.")
+        XCTAssertTrue(result.label.contains("WORLD"), "OCR result did not contain WORLD.")
+    }
+
+    func testPdfViewerSearchFindsTextInScannedPdfWithVisionOcr() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--pdf-viewer-ocr-test"]
+        app.launch()
+
+        let readerCard = app.buttons["tool_view_read"]
+        XCTAssertTrue(readerCard.waitForExistence(timeout: 15), "View & Read card did not appear.")
+        readerCard.tap()
+
+        let searchField = app.textFields["pdf_viewer_search_field"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 15), "PDFKit reader did not appear.")
+        searchField.tap()
+        searchField.typeText("HELLO WORLD")
+        app.buttons["pdf_viewer_search_submit"].tap()
+
+        let resultCount = app.staticTexts["pdf_viewer_search_count"]
+        let found = NSPredicate(format: "label == %@", "1 of 1 matches")
+        expectation(for: found, evaluatedWith: resultCount)
+        waitForExpectations(timeout: 60)
+        XCTAssertTrue(app.buttons["pdf_viewer_next_match"].isEnabled)
+    }
+
+    func testSignatureEmbeddingAddsStampAndProducesLargerFlattenedPdf() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--signature-embedding-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["signature_embedding_smoke_result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 20), "Signature embedding did not report a test result.")
+        XCTAssertTrue(
+            result.label.contains("SIGNATURE_EMBEDDING_TEST_PASSED"),
+            "PDFKit signature embedding failed: \(result.label)"
+        )
+        XCTAssertTrue(result.label.contains("bytes="), "The flattened PDF size was not reported.")
+    }
+
     func testSignatureVaultCanSaveAndLoadWithoutKeychainError() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--signature-vault-smoke-test"]

@@ -66,6 +66,14 @@
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000F /* PdfViewerView.swift */;
         };
+        20000000000000000000000D /* OcrEngine.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000010 /* OcrEngine.swift */;
+        };
+        20000000000000000000000E /* PDFSignatureEmbedder.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000011 /* PDFSignatureEmbedder.swift */;
+        };
         20000000000000000000000B /* VibeSyncIOSAppUITests.swift in Sources */ = {
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000B /* VibeSyncIOSAppUITests.swift */;
@@ -138,6 +146,8 @@
                 200000000000000000000007 /* SignatureVault.swift in Sources */,
                 200000000000000000000008 /* SignatureManagerView.swift in Sources */,
                 200000000000000000000009 /* PdfViewerView.swift in Sources */,
+                20000000000000000000000D /* OcrEngine.swift in Sources */,
+                20000000000000000000000E /* PDFSignatureEmbedder.swift in Sources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -285,6 +295,18 @@
             path = VibeSyncIOS.entitlements;
             sourceTree = "<group>";
         };
+        600000000000000000000010 /* OcrEngine.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = OcrEngine.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000011 /* PDFSignatureEmbedder.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = PDFSignatureEmbedder.swift;
+            sourceTree = "<group>";
+        };
         60000000000000000000000F /* PdfViewerView.swift */ = {
             isa = PBXFileReference;
             lastKnownFileType = sourcecode.swift;
@@ -330,6 +352,8 @@
                 60000000000000000000000A /* SignatureManagerView.swift */,
                 60000000000000000000000D /* VibeSyncIOS.entitlements */,
                 60000000000000000000000F /* PdfViewerView.swift */,
+                600000000000000000000010 /* OcrEngine.swift */,
+                600000000000000000000011 /* PDFSignatureEmbedder.swift */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";

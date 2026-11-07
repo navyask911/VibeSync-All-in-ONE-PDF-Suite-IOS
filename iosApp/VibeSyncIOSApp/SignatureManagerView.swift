@@ -313,11 +313,12 @@ struct SignatureManagerView: View {
                     }
                     let pageBounds = page.bounds(for: .cropBox)
                     let baseWidth = pageBounds.width * 0.15
+                    let aspectRatio = selectedImage.map { $0.size.height / max($0.size.width, 1) } ?? 0.5
                     placement = PDFSignaturePlacement(
                         pageIndex: tappedPageIndex,
                         center: point,
                         baseWidth: baseWidth,
-                        baseHeight: baseWidth * 0.5
+                        baseHeight: baseWidth * aspectRatio
                     )
                     statusMessage = "Signature placed. Adjust its size or rotation, then export."
                     errorMessage = nil
@@ -427,11 +428,8 @@ struct SignatureManagerView: View {
             return
         }
 
-        let options: [PDFDocumentWriteOption: Any] = [
-            PDFDocumentWriteOption.burnInAnnotationsOption: true
-        ]
         guard
-            let flattenedData = pdfDocument.dataRepresentation(options: options),
+            let flattenedData = try? PDFSignatureEmbedder.flattenedData(from: pdfDocument),
             !flattenedData.isEmpty,
             let verifiedDocument = PDFDocument(data: flattenedData),
             verifiedDocument.pageCount == pdfDocument.pageCount
@@ -781,7 +779,7 @@ private struct SignaturePDFPreview: UIViewRepresentable {
         var onTap: (Int, PDFPage, CGPoint) -> Void
 
         private weak var annotationPage: PDFPage?
-        private var previewAnnotation: SignatureImageAnnotation?
+        private var previewAnnotation: PDFSignatureStampAnnotation?
 
         init(onTap: @escaping (Int, PDFPage, CGPoint) -> Void) {
             self.onTap = onTap
@@ -835,9 +833,9 @@ private struct SignaturePDFPreview: UIViewRepresentable {
                 previewAnnotation.signatureImage = image
             } else {
                 removePreviewAnnotation()
-                let annotation = SignatureImageAnnotation(
+                let annotation = PDFSignatureEmbedder.makeAnnotation(
                     bounds: geometry.bounds,
-                    signatureImage: image,
+                    image: image,
                     imageSize: geometry.imageSize,
                     rotationDegrees: rotationDegrees
                 )
@@ -856,52 +854,6 @@ private struct SignaturePDFPreview: UIViewRepresentable {
             annotationPage = nil
             pdfView?.setNeedsDisplay()
         }
-    }
-}
-
-private final class SignatureImageAnnotation: PDFAnnotation {
-    var signatureImage: UIImage
-    var imageSize: CGSize
-    var rotationDegrees: CGFloat
-
-    init(
-        bounds: CGRect,
-        signatureImage: UIImage,
-        imageSize: CGSize,
-        rotationDegrees: CGFloat
-    ) {
-        self.signatureImage = signatureImage
-        self.imageSize = imageSize
-        self.rotationDegrees = rotationDegrees
-        super.init(bounds: bounds, forType: .stamp, withProperties: nil)
-        shouldDisplay = true
-        shouldPrint = true
-    }
-
-    required init?(coder: NSCoder) {
-        signatureImage = UIImage()
-        imageSize = .zero
-        rotationDegrees = 0
-        super.init(coder: coder)
-    }
-
-    override func draw(with box: PDFDisplayBox, in context: CGContext) {
-        guard let cgImage = signatureImage.cgImage else { return }
-
-        context.saveGState()
-        context.translateBy(x: bounds.midX, y: bounds.midY)
-        context.rotate(by: -rotationDegrees * .pi / 180)
-        context.scaleBy(x: 1, y: -1)
-        context.draw(
-            cgImage,
-            in: CGRect(
-                x: -imageSize.width / 2,
-                y: -imageSize.height / 2,
-                width: imageSize.width,
-                height: imageSize.height
-            )
-        )
-        context.restoreGState()
     }
 }
 

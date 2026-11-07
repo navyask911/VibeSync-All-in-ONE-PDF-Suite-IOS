@@ -12,10 +12,13 @@ struct PdfViewerView: View {
     @State private var pdfDocument: PDFDocument?
     @State private var pdfView: PDFView?
     @State private var searchText = ""
-    @State private var matches: [PDFSelection] = []
+    @State private var searchHits: [PDFViewerSearchHit] = []
     @State private var selectedMatchIndex = 0
-    @State private var searchMessage = "Search embedded PDF text. OCR is not included yet."
+    @State private var searchMessage = "Search embedded PDF text."
     @State private var loadError: String?
+    @State private var ocrCache: [Int: [OcrTextObservation]] = [:]
+    @State private var searchTask: Task<Void, Never>?
+    @State private var temporaryOCRHighlights: [PDFViewerOCRHighlight] = []
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,6 +57,10 @@ struct PdfViewerView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: loadPDF)
+        .onDisappear {
+            searchTask?.cancel()
+            clearOCRHighlights()
+        }
     }
 
     private var header: some View {
@@ -170,7 +177,7 @@ struct PdfViewerView: View {
                 }
                 .accessibilityLabel("Previous search result")
                 .accessibilityIdentifier("pdf_viewer_previous_match")
-                .disabled(matches.isEmpty)
+                .disabled(searchHits.isEmpty)
 
                 Button {
                     moveToMatch(direction: 1)
@@ -180,7 +187,7 @@ struct PdfViewerView: View {
                 }
                 .accessibilityLabel("Next search result")
                 .accessibilityIdentifier("pdf_viewer_next_match")
-                .disabled(matches.isEmpty)
+                .disabled(searchHits.isEmpty)
             }
             .font(.system(size: 13, weight: .semibold))
         }
@@ -202,6 +209,14 @@ struct PdfViewerView: View {
     }
 
     private func performSearch() {
+        searchTask?.cancel()
+        clearOCRHighlights()
+
+        guard let pdfDocument, let pdfView else {
+            searchMessage = "PDF is still loading."
+            return
+        }
+
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder),
             to: nil,
@@ -209,56 +224,168 @@ struct PdfViewerView: View {
             for: nil
         )
 
-        guard let pdfDocument, let pdfView else {
-            searchMessage = "PDF is still loading."
-            return
-        }
-
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
             clearSearch()
             return
         }
 
-        // PDFKit searches embedded text, including Unicode scripts when the PDF has
-        // a selectable text layer. Image-only scans require OCR, which is a later phase.
-        let found = pdfDocument.findString(query, withOptions: [.caseInsensitive])
-        found.forEach { $0.color = UIColor.systemYellow.withAlphaComponent(0.55) }
-        matches = found
-        selectedMatchIndex = 0
+        // Search embedded text first. PDFKit returns real text selections very quickly.
+        let digitalSelections = pdfDocument.findString(query, withOptions: [.caseInsensitive])
+        digitalSelections.forEach { $0.color = UIColor.systemYellow.withAlphaComponent(0.55) }
+        let digitalHits = digitalSelections.compactMap { selection -> PDFViewerSearchHit? in
+            guard let page = selection.pages.first else { return nil }
+            let pageIndex = pdfDocument.index(for: page)
+            guard pageIndex != NSNotFound else { return nil }
+            return PDFViewerSearchHit(pageIndex: pageIndex, selection: selection, ocrBounds: nil)
+        }
 
-        guard !found.isEmpty else {
-            pdfView.highlightedSelections = nil
-            pdfView.setCurrentSelection(nil, animate: false)
-            searchMessage = "No text matches (scanned PDFs need OCR)."
+        // OCR is only required for pages whose PDF text layer is absent or empty.
+        let scannedPageIndices = (0..<pdfDocument.pageCount).filter { pageIndex in
+            guard let page = pdfDocument.page(at: pageIndex) else { return false }
+            return (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+
+        guard !scannedPageIndices.isEmpty else {
+            publishSearchResults(digitalHits, digitalSelections: digitalSelections)
             return
         }
 
-        pdfView.highlightedSelections = found
-        focusMatch(at: selectedMatchIndex)
-        searchMessage = "1 of \(found.count) matches"
+        searchMessage = "Searching \(scannedPageIndices.count) scanned pages…"
+        searchTask = Task { @MainActor in
+            var recognitionFailures = 0
+            for pageIndex in scannedPageIndices {
+                guard !Task.isCancelled, let page = pdfDocument.page(at: pageIndex) else { return }
+                if ocrCache[pageIndex] != nil { continue }
+                do {
+                    ocrCache[pageIndex] = try await OcrEngine.recognize(page: page)
+                } catch {
+                    recognitionFailures += 1
+                }
+            }
+
+            guard !Task.isCancelled else { return }
+            let ocrHits = matchingOCRHits(query: query, document: pdfDocument)
+            let allHits = sortHits(digitalHits + ocrHits, document: pdfDocument)
+            publishSearchResults(
+                allHits,
+                digitalSelections: digitalSelections,
+                recognitionFailures: recognitionFailures
+            )
+        }
+    }
+
+    private func matchingOCRHits(query: String, document: PDFDocument) -> [PDFViewerSearchHit] {
+        var results: [PDFViewerSearchHit] = []
+        for (pageIndex, observations) in ocrCache {
+            guard let page = document.page(at: pageIndex) else { continue }
+            let pageBounds = page.bounds(for: .cropBox)
+            for observation in observations where observation.text.range(
+                of: query,
+                options: [.caseInsensitive, .diacriticInsensitive]
+            ) != nil {
+                let normalized = observation.normalizedBounds
+                let rect = CGRect(
+                    x: pageBounds.minX + normalized.minX * pageBounds.width,
+                    y: pageBounds.minY + normalized.minY * pageBounds.height,
+                    width: normalized.width * pageBounds.width,
+                    height: normalized.height * pageBounds.height
+                ).intersection(pageBounds)
+                guard !rect.isNull, !rect.isEmpty else { continue }
+                results.append(
+                    PDFViewerSearchHit(pageIndex: pageIndex, selection: nil, ocrBounds: rect)
+                )
+            }
+        }
+        return results
+    }
+
+    private func sortHits(
+        _ hits: [PDFViewerSearchHit],
+        document: PDFDocument
+    ) -> [PDFViewerSearchHit] {
+        hits.sorted { first, second in
+            if first.pageIndex != second.pageIndex {
+                return first.pageIndex < second.pageIndex
+            }
+            let firstY = first.ocrBounds?.midY ?? document.page(at: first.pageIndex)
+                .map { first.selection?.bounds(for: $0).midY ?? 0 } ?? 0
+            let secondY = second.ocrBounds?.midY ?? document.page(at: second.pageIndex)
+                .map { second.selection?.bounds(for: $0).midY ?? 0 } ?? 0
+            return firstY > secondY
+        }
+    }
+
+    private func publishSearchResults(
+        _ hits: [PDFViewerSearchHit],
+        digitalSelections: [PDFSelection],
+        recognitionFailures: Int = 0
+    ) {
+        searchHits = hits
+        selectedMatchIndex = 0
+        pdfView?.highlightedSelections = digitalSelections
+
+        for hit in hits {
+            guard let bounds = hit.ocrBounds,
+                  let page = pdfDocument?.page(at: hit.pageIndex) else { continue }
+            let annotation = PDFAnnotation(bounds: bounds, forType: .square, withProperties: nil)
+            annotation.color = UIColor.systemYellow.withAlphaComponent(0.65)
+            annotation.interiorColor = UIColor.systemYellow.withAlphaComponent(0.36)
+            let border = PDFBorder()
+            border.lineWidth = 0
+            annotation.border = border
+            page.addAnnotation(annotation)
+            temporaryOCRHighlights.append(PDFViewerOCRHighlight(page: page, annotation: annotation))
+        }
+
+        guard !hits.isEmpty else {
+            pdfView?.setCurrentSelection(nil, animate: false)
+            searchMessage = recognitionFailures > 0
+                ? "Some scanned pages could not be recognized."
+                : "No text matches."
+            return
+        }
+
+        focusMatch(at: 0)
+        searchMessage = "1 of \(hits.count) matches"
+    }
+
+    private func clearOCRHighlights() {
+        for highlight in temporaryOCRHighlights {
+            highlight.page.removeAnnotation(highlight.annotation)
+        }
+        temporaryOCRHighlights.removeAll()
+        pdfView?.setNeedsDisplay()
     }
 
     private func clearSearch() {
-        matches = []
+        searchTask?.cancel()
+        searchHits = []
         selectedMatchIndex = 0
-        searchMessage = "Search embedded PDF text. OCR is not included yet."
+        searchMessage = "Search embedded PDF text."
         pdfView?.highlightedSelections = nil
         pdfView?.setCurrentSelection(nil, animate: false)
+        clearOCRHighlights()
     }
 
     private func moveToMatch(direction: Int) {
-        guard !matches.isEmpty else { return }
-        selectedMatchIndex = (selectedMatchIndex + direction + matches.count) % matches.count
+        guard !searchHits.isEmpty else { return }
+        selectedMatchIndex = (selectedMatchIndex + direction + searchHits.count) % searchHits.count
         focusMatch(at: selectedMatchIndex)
-        searchMessage = "\(selectedMatchIndex + 1) of \(matches.count) matches"
+        searchMessage = "\(selectedMatchIndex + 1) of \(searchHits.count) matches"
     }
 
     private func focusMatch(at index: Int) {
-        guard matches.indices.contains(index), let pdfView else { return }
-        let selection = matches[index]
-        pdfView.setCurrentSelection(selection, animate: true)
-        pdfView.go(to: selection)
+        guard searchHits.indices.contains(index), let pdfView,
+              let document = pdfDocument else { return }
+        let hit = searchHits[index]
+        if let selection = hit.selection {
+            pdfView.setCurrentSelection(selection, animate: true)
+            pdfView.go(to: selection)
+        } else if let bounds = hit.ocrBounds, let page = document.page(at: hit.pageIndex) {
+            pdfView.setCurrentSelection(nil, animate: false)
+            pdfView.go(to: bounds, on: page)
+        }
     }
 
     private func changeZoom(by multiplier: CGFloat) {
@@ -267,6 +394,17 @@ struct PdfViewerView: View {
         let maximum = max(fitScale, fitScale * 4)
         pdfView.scaleFactor = min(maximum, max(fitScale, pdfView.scaleFactor * multiplier))
     }
+}
+
+private struct PDFViewerSearchHit {
+    let pageIndex: Int
+    let selection: PDFSelection?
+    let ocrBounds: CGRect?
+}
+
+private struct PDFViewerOCRHighlight {
+    let page: PDFPage
+    let annotation: PDFAnnotation
 }
 
 private struct PDFKitReaderView: UIViewRepresentable {

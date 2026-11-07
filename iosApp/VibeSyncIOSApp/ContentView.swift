@@ -57,6 +57,8 @@ struct ContentView: View {
     @State private var openedPDFForViewing: OpenedPDFDocument?
     @State private var isShowingPDFViewer = false
     @State private var searchTestPDF: OpenedPDFDocument?
+    @State private var ocrEngineSmokeResult: String?
+    @State private var signatureEmbeddingSmokeResult: String?
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 12),
@@ -101,6 +103,24 @@ struct ContentView: View {
                                                  ? VibeSyncColors.successGreen
                                                  : VibeSyncColors.dangerRed)
                                 .accessibilityIdentifier("signature_vault_smoke_result")
+                        }
+
+                        if let ocrEngineSmokeResult {
+                            Text(ocrEngineSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(ocrEngineSmokeResult.contains("OCR_ENGINE_TEST_PASSED")
+                                                 ? VibeSyncColors.successGreen
+                                                 : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("ocr_engine_smoke_result")
+                        }
+
+                        if let signatureEmbeddingSmokeResult {
+                            Text(signatureEmbeddingSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(signatureEmbeddingSmokeResult.contains("SIGNATURE_EMBEDDING_TEST_PASSED")
+                                                 ? VibeSyncColors.successGreen
+                                                 : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("signature_embedding_smoke_result")
                         }
 
                         if let pdfEngineSmokeResult {
@@ -182,6 +202,15 @@ struct ContentView: View {
                 }
                 if arguments.contains("--pdf-viewer-search-test") {
                     searchTestPDF = makeSearchTestPDF()
+                }
+                if arguments.contains("--ocr-engine-smoke-test") {
+                    runOcrEngineSmokeTest()
+                }
+                if arguments.contains("--signature-embedding-smoke-test") {
+                    runSignatureEmbeddingSmokeTest()
+                }
+                if arguments.contains("--pdf-viewer-ocr-test") {
+                    searchTestPDF = makeScannedSearchTestPDF()
                 }
             }
         }
@@ -320,7 +349,7 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier(tool.id)
-        case "tool_signature_manager":
+        case "tool_edit_sign", "tool_signature_manager":
             NavigationLink {
                 SignatureManagerView()
             } label: {
@@ -511,6 +540,140 @@ struct ContentView: View {
         }
         guard !data.isEmpty else { return nil }
         return OpenedPDFDocument(data: data, fileName: "VibeSync-Search-Sample.pdf")
+    }
+
+    private func makeScannedSearchTestPDF() -> OpenedPDFDocument? {
+        do {
+            return OpenedPDFDocument(
+                data: try makeScannedTextPDF(),
+                fileName: "VibeSync-Scanned-OCR.pdf"
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    private func makeScannedTextPDF() throws -> Data {
+        let imageSize = CGSize(width: 1800, height: 520)
+        let image = UIGraphicsImageRenderer(size: imageSize).image { renderer in
+            renderer.cgContext.setFillColor(UIColor.white.cgColor)
+            renderer.cgContext.fill(CGRect(origin: .zero, size: imageSize))
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: 180, weight: .bold),
+                .foregroundColor: UIColor.black
+            ]
+            NSString(string: "HELLO WORLD")
+                .draw(at: CGPoint(x: 100, y: 155), withAttributes: attributes)
+        }
+
+        let pageBounds = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+        let data = renderer.pdfData { context in
+            context.beginPage()
+            image.draw(in: CGRect(x: 50, y: 290, width: 512, height: 148))
+        }
+        guard !data.isEmpty else { throw CocoaError(.fileWriteUnknown) }
+        return data
+    }
+
+    private func runOcrEngineSmokeTest() {
+        Task { @MainActor in
+            do {
+                let data = try makeScannedTextPDF()
+                guard let document = PDFDocument(data: data),
+                      let page = document.page(at: 0),
+                      (page.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    throw NSError(
+                        domain: "VibeSyncOcrSmokeTest",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "The OCR fixture must contain no embedded PDF text."]
+                    )
+                }
+
+                let observations = try await OcrEngine.recognize(page: page)
+                let recognizedText = observations.map(\.text).joined(separator: " ").uppercased()
+                guard recognizedText.contains("HELLO"), recognizedText.contains("WORLD") else {
+                    throw NSError(
+                        domain: "VibeSyncOcrSmokeTest",
+                        code: 2,
+                        userInfo: [NSLocalizedDescriptionKey: "Vision did not recognize HELLO WORLD. OCR returned: \(recognizedText)"]
+                    )
+                }
+                ocrEngineSmokeResult = "OCR_ENGINE_TEST_PASSED \(recognizedText)"
+            } catch {
+                ocrEngineSmokeResult = "OCR_ENGINE_TEST_FAILED \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func runSignatureEmbeddingSmokeTest() {
+        do {
+            let pageBounds = CGRect(x: 0, y: 0, width: 612, height: 792)
+            let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+            let originalData = renderer.pdfData { context in
+                context.beginPage()
+                NSString(string: "Signature embedding test document")
+                    .draw(at: CGPoint(x: 50, y: 70), withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 22, weight: .semibold),
+                        .foregroundColor: UIColor.black
+                    ])
+            }
+            guard let document = PDFDocument(data: originalData),
+                  let page = document.page(at: 0) else {
+                throw PDFSignatureEmbeddingError.invalidPage
+            }
+
+            let signatureSize = CGSize(width: 360, height: 140)
+            let signatureImage = UIGraphicsImageRenderer(size: signatureSize).image { renderer in
+                let context = renderer.cgContext
+                context.setStrokeColor(UIColor.black.cgColor)
+                context.setLineWidth(9)
+                context.setLineCap(.round)
+                context.setLineJoin(.round)
+                context.move(to: CGPoint(x: 25, y: 100))
+                context.addCurve(
+                    to: CGPoint(x: 330, y: 45),
+                    control1: CGPoint(x: 80, y: 5),
+                    control2: CGPoint(x: 220, y: 130)
+                )
+                context.strokePath()
+            }
+
+            let annotation = try PDFSignatureEmbedder.addSignature(
+                image: signatureImage,
+                to: document,
+                pageIndex: 0,
+                center: CGPoint(x: 310, y: 350),
+                width: 150,
+                rotationDegrees: 12
+            )
+            guard page.annotations.contains(where: { $0 === annotation }),
+                  annotation.shouldPrint else {
+                throw PDFSignatureEmbeddingError.invalidPlacement
+            }
+
+            let flattenedData = try PDFSignatureEmbedder.flattenedData(from: document)
+            guard flattenedData.count > originalData.count,
+                  let reopened = PDFDocument(data: flattenedData),
+                  reopened.pageCount == 1 else {
+                throw PDFSignatureEmbeddingError.flatteningFailed
+            }
+
+            let outputURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("VibeSync-Signature-Embedding-\(UUID().uuidString)")
+                .appendingPathExtension("pdf")
+            defer { try? FileManager.default.removeItem(at: outputURL) }
+            try flattenedData.write(to: outputURL, options: .atomic)
+            let attributes = try FileManager.default.attributesOfItem(atPath: outputURL.path)
+            let outputSize = (attributes[.size] as? NSNumber)?.intValue ?? 0
+            guard outputSize > originalData.count else {
+                throw PDFSignatureEmbeddingError.flatteningFailed
+            }
+
+            signatureEmbeddingSmokeResult = "SIGNATURE_EMBEDDING_TEST_PASSED bytes=\(outputSize)"
+        } catch {
+            signatureEmbeddingSmokeResult = "SIGNATURE_EMBEDDING_TEST_FAILED \(error.localizedDescription)"
+        }
     }
 
     private func prepareExportCopy() {
