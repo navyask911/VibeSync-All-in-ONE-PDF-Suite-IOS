@@ -70,12 +70,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      - name: Install CocoaPods and Google ML Kit
+        run: |
+          set -euo pipefail
+          sudo gem install cocoapods --no-document
+          pod --version
+          pod install --repo-update --project-directory=iosApp
+
       - name: Build SwiftUI app and KMP framework
         run: |
           set -euo pipefail
           chmod +x android/gradlew
           xcodebuild \
-            -project iosApp/VibeSyncIOS.xcodeproj \
+            -workspace iosApp/VibeSyncIOS.xcworkspace \
             -scheme VibeSyncIOSApp \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \

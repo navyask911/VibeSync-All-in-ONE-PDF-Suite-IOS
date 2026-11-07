@@ -141,6 +141,44 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         XCTAssertTrue(result.label.contains("bytes="), "The flattened PDF size was not reported.")
     }
 
+    func testTranslationViewShowsOCRImportAndLanguageControls() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let translationCard = app.buttons["tool_translation_scan"]
+        scrollToElement(translationCard, in: app)
+        XCTAssertTrue(translationCard.waitForExistence(timeout: 15), "Translation Scan dashboard card did not appear.")
+        translationCard.tap()
+
+        XCTAssertTrue(app.staticTexts["Translate scanned documents"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["translation_import_button"].exists, "PDF import action is missing.")
+        XCTAssertTrue(app.buttons["translation_translate_button"].exists, "Translate action is missing.")
+        XCTAssertTrue(app.textViews["translation_original_input"].exists, "Editable original-text area is missing.")
+        XCTAssertTrue(app.buttons["translation_swap_languages"].exists, "Source/target language swap is missing.")
+
+        attachScreenshot(named: "screenshot_translation", from: app)
+    }
+
+    func testMLKitDownloadsModelsAndTranslatesEnglishToSpanish() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--mlkit-translation-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["mlkit_translation_smoke_result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 240),
+            "ML Kit model initialization/download and translation did not finish within four minutes."
+        )
+        XCTAssertTrue(
+            result.label.contains("MLKIT_TRANSLATION_TEST_PASSED"),
+            "ML Kit English-to-Spanish translation failed: \(result.label)"
+        )
+        XCTAssertTrue(
+            result.label.localizedCaseInsensitiveContains("hola"),
+            "The Spanish translation should contain 'Hola': \(result.label)"
+        )
+    }
+
     func testSignatureVaultCanSaveAndLoadWithoutKeychainError() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--signature-vault-smoke-test"]

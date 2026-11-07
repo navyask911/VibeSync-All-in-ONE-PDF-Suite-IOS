@@ -57,6 +57,7 @@ struct ContentView: View {
     @State private var openedPDFForViewing: OpenedPDFDocument?
     @State private var isShowingPDFViewer = false
     @State private var searchTestPDF: OpenedPDFDocument?
+    @State private var mlKitTranslationSmokeResult: String?
     @State private var ocrEngineSmokeResult: String?
     @State private var signatureEmbeddingSmokeResult: String?
 
@@ -121,6 +122,15 @@ struct ContentView: View {
                                                  ? VibeSyncColors.successGreen
                                                  : VibeSyncColors.dangerRed)
                                 .accessibilityIdentifier("signature_embedding_smoke_result")
+                        }
+
+                        if let mlKitTranslationSmokeResult {
+                            Text(mlKitTranslationSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(mlKitTranslationSmokeResult.contains("MLKIT_TRANSLATION_TEST_PASSED")
+                                                 ? VibeSyncColors.successGreen
+                                                 : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("mlkit_translation_smoke_result")
                         }
 
                         if let pdfEngineSmokeResult {
@@ -211,6 +221,9 @@ struct ContentView: View {
                 }
                 if arguments.contains("--pdf-viewer-ocr-test") {
                     searchTestPDF = makeScannedSearchTestPDF()
+                }
+                if arguments.contains("--mlkit-translation-smoke-test") {
+                    runMLKitTranslationSmokeTest()
                 }
             }
         }
@@ -352,6 +365,14 @@ struct ContentView: View {
         case "tool_edit_sign", "tool_signature_manager":
             NavigationLink {
                 SignatureManagerView()
+            } label: {
+                toolCardContent(tool)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(tool.id)
+        case "tool_translation_scan":
+            NavigationLink {
+                TranslationView()
             } label: {
                 toolCardContent(tool)
             }
@@ -540,6 +561,28 @@ struct ContentView: View {
         }
         guard !data.isEmpty else { return nil }
         return OpenedPDFDocument(data: data, fileName: "VibeSync-Search-Sample.pdf")
+    }
+
+    private func runMLKitTranslationSmokeTest() {
+        Task { @MainActor in
+            do {
+                let translated = try await MLKitTranslationEngine().translate(
+                    "Hello world",
+                    from: "en",
+                    to: "es"
+                )
+                guard translated.localizedCaseInsensitiveContains("hola") else {
+                    throw NSError(
+                        domain: "VibeSyncMLKitTranslationSmokeTest",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "Expected a Spanish translation containing 'Hola'; got: \(translated)"]
+                    )
+                }
+                mlKitTranslationSmokeResult = "MLKIT_TRANSLATION_TEST_PASSED \(translated)"
+            } catch {
+                mlKitTranslationSmokeResult = "MLKIT_TRANSLATION_TEST_FAILED \(error.localizedDescription)"
+            }
+        }
     }
 
     private func makeScannedSearchTestPDF() -> OpenedPDFDocument? {

@@ -1,0 +1,8 @@
+platform :ios, '16.0'
+
+project 'VibeSyncIOS.xcodeproj'
+
+target 'VibeSyncIOSApp' do
+  # Google's documented iOS distribution for Translation is CocoaPods.
+  pod 'GoogleMLKit/Translate', '8.0.0'
+end

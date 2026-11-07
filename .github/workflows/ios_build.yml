@@ -45,6 +45,13 @@ jobs:
           xcodebuild -version
           java -version
 
+      - name: Install CocoaPods and Google ML Kit
+        run: |
+          set -euo pipefail
+          sudo gem install cocoapods --no-document
+          pod --version
+          pod install --repo-update --project-directory=iosApp
+
       - name: Run iOS navigation UI tests and PDF engine XCTest
         run: |
           set -euo pipefail
@@ -59,7 +66,7 @@ jobs:
 
           RESULT_BUNDLE="$RUNNER_TEMP/VibeSyncIOSUITests.xcresult"
           xcodebuild test \
-            -project iosApp/VibeSyncIOS.xcodeproj \
+            -workspace iosApp/VibeSyncIOS.xcworkspace \
             -scheme VibeSyncIOSApp \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=$DEVICE_UDID" \
@@ -121,6 +128,7 @@ jobs:
           required = {
               "screenshot_dashboard": "screenshot_dashboard.png",
               "screenshot_viewer": "screenshot_viewer.png",
+              "screenshot_translation": "screenshot_translation.png",
               "screenshot_id_card": "screenshot_id_card.png",
               "screenshot_signature": "screenshot_signature.png",
           }
@@ -152,13 +160,13 @@ jobs:
               print(f"{key}: {path} ({os.path.getsize(path)} bytes)")
           PY
 
-          file screenshots/screenshot_dashboard.png screenshots/screenshot_viewer.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
+          file screenshots/screenshot_dashboard.png screenshots/screenshot_viewer.png screenshots/screenshot_translation.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
 
       - name: Commit internal feature screenshots to repository
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && success()
         run: |
           set -euo pipefail
-          git add screenshots/screenshot_dashboard.png screenshots/screenshot_viewer.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
+          git add iosApp/Podfile.lock screenshots/screenshot_dashboard.png screenshots/screenshot_viewer.png screenshots/screenshot_translation.png screenshots/screenshot_id_card.png screenshots/screenshot_signature.png
 
           if git diff --cached --quiet; then
             echo "Feature screenshots are unchanged; skipping commit."
@@ -178,6 +186,7 @@ jobs:
           path: |
             screenshots/screenshot_dashboard.png
             screenshots/screenshot_viewer.png
+            screenshots/screenshot_translation.png
             screenshots/screenshot_id_card.png
             screenshots/screenshot_signature.png
           if-no-files-found: error

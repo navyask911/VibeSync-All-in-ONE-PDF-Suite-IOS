@@ -74,6 +74,14 @@
             isa = PBXBuildFile;
             fileRef = 600000000000000000000011 /* PDFSignatureEmbedder.swift */;
         };
+        20000000000000000000000F /* MLKitTranslationEngine.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000012 /* MLKitTranslationEngine.swift */;
+        };
+        200000000000000000000010 /* TranslationView.swift in Sources */ = {
+            isa = PBXBuildFile;
+            fileRef = 600000000000000000000013 /* TranslationView.swift */;
+        };
         20000000000000000000000B /* VibeSyncIOSAppUITests.swift in Sources */ = {
             isa = PBXBuildFile;
             fileRef = 60000000000000000000000B /* VibeSyncIOSAppUITests.swift */;
@@ -148,6 +156,8 @@
                 200000000000000000000009 /* PdfViewerView.swift in Sources */,
                 20000000000000000000000D /* OcrEngine.swift in Sources */,
                 20000000000000000000000E /* PDFSignatureEmbedder.swift in Sources */,
+                20000000000000000000000F /* MLKitTranslationEngine.swift in Sources */,
+                200000000000000000000010 /* TranslationView.swift in Sources */,
             );
             runOnlyForDeploymentPostprocessing = 0;
         };
@@ -301,6 +311,18 @@
             path = OcrEngine.swift;
             sourceTree = "<group>";
         };
+        600000000000000000000012 /* MLKitTranslationEngine.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = MLKitTranslationEngine.swift;
+            sourceTree = "<group>";
+        };
+        600000000000000000000013 /* TranslationView.swift */ = {
+            isa = PBXFileReference;
+            lastKnownFileType = sourcecode.swift;
+            path = TranslationView.swift;
+            sourceTree = "<group>";
+        };
         600000000000000000000011 /* PDFSignatureEmbedder.swift */ = {
             isa = PBXFileReference;
             lastKnownFileType = sourcecode.swift;
@@ -354,6 +376,8 @@
                 60000000000000000000000F /* PdfViewerView.swift */,
                 600000000000000000000010 /* OcrEngine.swift */,
                 600000000000000000000011 /* PDFSignatureEmbedder.swift */,
+                600000000000000000000012 /* MLKitTranslationEngine.swift */,
+                600000000000000000000013 /* TranslationView.swift */,
             );
             path = VibeSyncIOSApp;
             sourceTree = "<group>";
