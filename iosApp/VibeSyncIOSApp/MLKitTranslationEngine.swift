@@ -34,17 +34,22 @@ struct MLKitTranslationEngine {
         guard sourceLanguageCode != targetLanguageCode else {
             throw MLKitTranslationError.identicalLanguages
         }
-        // TranslateLanguage is a RawRepresentable newtype; the language tag
-        // is its raw value (for example "en", "es", or "kn").
-        guard
-            let sourceLanguage = TranslateLanguage(rawValue: sourceLanguageCode),
-            let targetLanguage = TranslateLanguage(rawValue: targetLanguageCode)
-        else {
-            let unsupported = TranslateLanguage(rawValue: sourceLanguageCode) == nil
-                ? sourceLanguageCode
-                : targetLanguageCode
-            throw MLKitTranslationError.unsupportedLanguage(unsupported)
+        // TranslateLanguage is a RawRepresentable newtype with a non-failable
+        // initializer, so validate tags against the language list exposed by the UI.
+        let supportedLanguageCodes: Set<String> = [
+            "en", "es", "de", "fr", "it", "pt", "ru", "zh", "ja", "ko",
+            "ar", "iw", "hi", "bn", "ur", "tr", "vi", "th", "id", "nl",
+            "pl", "fa", "el", "cs", "sv", "ta", "te", "mr", "gu", "kn",
+            "ro", "uk", "sw", "tl"
+        ]
+        guard supportedLanguageCodes.contains(sourceLanguageCode) else {
+            throw MLKitTranslationError.unsupportedLanguage(sourceLanguageCode)
         }
+        guard supportedLanguageCodes.contains(targetLanguageCode) else {
+            throw MLKitTranslationError.unsupportedLanguage(targetLanguageCode)
+        }
+        let sourceLanguage = TranslateLanguage(rawValue: sourceLanguageCode)
+        let targetLanguage = TranslateLanguage(rawValue: targetLanguageCode)
 
         let options = TranslatorOptions(
             sourceLanguage: sourceLanguage,
