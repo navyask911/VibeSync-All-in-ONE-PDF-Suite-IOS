@@ -28,7 +28,7 @@ concurrency:
 jobs:
   build-ios-simulator:
     name: Build iOS Simulator (arm64)
-    runs-on: macos-latest
+    runs-on: macos-15-intel
     timeout-minutes: 45
     steps:
       - name: Check out repository
@@ -72,18 +72,34 @@ jobs:
               for device in runtime_devices
               if device.get("isAvailable") and device.get("name", "").startswith("iPhone")
           ]
-          if not candidates:
-              raise SystemExit("No available iPhone Simulator runtime/device was found.")
-          print(candidates[0])
+          print(candidates[0] if candidates else "")
           ')
           if [ -z "$DEVICE_UDID" ]; then
-            echo "::error::No available iPhone Simulator was found."
-            xcrun simctl list devices available
-            exit 1
+            echo "No pre-created iPhone simulator found; creating one from an installed iOS runtime."
+            SIM_RUNTIME=$(xcrun simctl list runtimes -j | python3 -c '
+            import json, sys
+            runtimes = json.load(sys.stdin).get("runtimes", [])
+            candidates = [r["identifier"] for r in runtimes if r.get("isAvailable") and r.get("platform") == "iOS"]
+            print(candidates[0] if candidates else "")
+            ')
+            DEVICE_TYPE=$(xcrun simctl list devicetypes -j | python3 -c '
+            import json, sys
+            types = json.load(sys.stdin).get("devicetypes", [])
+            candidates = [d["identifier"] for d in types if d.get("identifier", "").startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-")]
+            print(candidates[0] if candidates else "")
+            ')
+            if [ -z "$SIM_RUNTIME" ] || [ -z "$DEVICE_TYPE" ]; then
+              echo "::error::No iOS Simulator runtime or iPhone device type is installed."
+              xcrun simctl list runtimes
+              xcrun simctl list devicetypes
+              exit 1
+            fi
+            DEVICE_UDID=$(xcrun simctl create "VibeSync CI iPhone" "$DEVICE_TYPE" "$SIM_RUNTIME")
           fi
           echo "Selected iOS Simulator: $DEVICE_UDID"
           xcrun simctl boot "$DEVICE_UDID" || true
           xcrun simctl bootstatus "$DEVICE_UDID" -b
+          xcodebuild -showdestinations -workspace iosApp/VibeSyncIOS.xcworkspace -scheme VibeSyncIOSApp
           xcodebuild -showdestinations -workspace iosApp/VibeSyncIOS.xcworkspace -scheme VibeSyncIOSApp
 
           RESULT_BUNDLE="$RUNNER_TEMP/VibeSyncIOSUITests.xcresult"
@@ -97,7 +113,9 @@ jobs:
             -resultBundlePath "$RESULT_BUNDLE" \
             CODE_SIGNING_ALLOWED=YES \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=-
+            CODE_SIGN_IDENTITY=- \
+            ARCHS=x86_64 \
+            KOTLIN_SIMULATOR_TARGET=iosX64
 
           SIMULATED_ENTITLEMENTS="$RUNNER_TEMP/VibeSyncDerivedData/Build/Intermediates.noindex/VibeSyncIOS.build/Debug-iphonesimulator/VibeSyncIOSApp.build/VibeSyncIOSApp.app-Simulated.xcent"
           test -s "$SIMULATED_ENTITLEMENTS"

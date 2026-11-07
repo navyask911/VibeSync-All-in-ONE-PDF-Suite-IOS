@@ -10,11 +10,12 @@ kotlin {
     // Keep the device target available while CI validates the arm64 simulator target.
     listOf(
         iosArm64(),
-        iosSimulatorArm64()
+        iosSimulatorArm64(),
+        iosX64()
     ).forEach { target ->
         target.binaries.configureEach {
             // Match the Xcode app target; Kotlin/Native defaults to iOS 15.0.
-            freeCompilerArgs += "-Xoverride-konan-properties=osVersionMin.ios_arm64=16.0;osVersionMin.ios_simulator_arm64=16.0"
+            freeCompilerArgs += "-Xoverride-konan-properties=osVersionMin.ios_arm64=16.0;osVersionMin.ios_simulator_arm64=16.0;osVersionMin.ios_x64=16.0"
         }
         target.binaries.framework {
             baseName = "Shared"

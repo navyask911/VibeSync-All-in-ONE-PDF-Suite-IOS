@@ -141,7 +141,7 @@
             outputPaths = ();
             runOnlyForDeploymentPostprocessing = 0;
             shellPath = /bin/sh;
-            shellScript = "set -e\ncd \"$SRCROOT/../android\"\n./gradlew --no-daemon \":shared:link${CONFIGURATION}FrameworkIosSimulatorArm64\"\n";
+            shellScript = "set -e\ncd \"$SRCROOT/../android\"\nSIMULATOR_TARGET=\"${KOTLIN_SIMULATOR_TARGET}\"\n./gradlew --no-daemon \":shared:link${CONFIGURATION}Framework${SIMULATOR_TARGET}\"\n";
         };
         400000000000000000000002 /* Sources */ = {
             isa = PBXSourcesBuildPhase;
@@ -422,7 +422,8 @@
                 CODE_SIGN_STYLE = Automatic;
                 CODE_SIGN_ENTITLEMENTS = VibeSyncIOSApp/VibeSyncIOS.entitlements;
                 CURRENT_PROJECT_VERSION = 1;
-                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/debugFramework\"";
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/$(KOTLIN_SIMULATOR_TARGET)/debugFramework\"";
+                KOTLIN_SIMULATOR_TARGET = iosSimulatorArm64;
                 GENERATE_INFOPLIST_FILE = NO;
                 INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
                 IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -444,7 +445,8 @@
                 CODE_SIGN_STYLE = Automatic;
                 CODE_SIGN_ENTITLEMENTS = VibeSyncIOSApp/VibeSyncIOS.entitlements;
                 CURRENT_PROJECT_VERSION = 1;
-                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/iosSimulatorArm64/releaseFramework\"";
+                FRAMEWORK_SEARCH_PATHS = "$(inherited) \"$(SRCROOT)/../shared/build/bin/$(KOTLIN_SIMULATOR_TARGET)/releaseFramework\"";
+                KOTLIN_SIMULATOR_TARGET = iosSimulatorArm64;
                 GENERATE_INFOPLIST_FILE = NO;
                 INFOPLIST_FILE = VibeSyncIOSApp/Info.plist;
                 IPHONEOS_DEPLOYMENT_TARGET = 16.0;

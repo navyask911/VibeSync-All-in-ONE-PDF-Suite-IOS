@@ -36,7 +36,7 @@ concurrency:
 jobs:
   stream:
     name: Build and stream VibeSync iOS Simulator
-    runs-on: macos-26
+    runs-on: macos-15-intel
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
@@ -88,6 +88,8 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$RUNNER_TEMP/VibeSyncDerivedData" \
             CODE_SIGNING_ALLOWED=NO \
+            ARCHS=x86_64 \
+            KOTLIN_SIMULATOR_TARGET=iosX64 \
             build
 
       - name: Verify iOS Simulator app bundle
