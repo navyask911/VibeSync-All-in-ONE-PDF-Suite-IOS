@@ -30,7 +30,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: ios-stream-${{ github.ref }}
+  group: ios-stream-mlkit-x64-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: ios-simulator-${{ github.ref }}
+  group: ios-simulator-mlkit-x64-${{ github.ref }}
   # Keep an active Xcode build alive; do not cancel it when another run is queued.
   cancel-in-progress: false
 
