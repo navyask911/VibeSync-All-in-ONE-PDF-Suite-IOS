@@ -36,7 +36,7 @@ concurrency:
 jobs:
   stream:
     name: Build and stream VibeSync iOS Simulator
-    runs-on: macos-15-intel
+    runs-on: macos-15-arm64
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
@@ -76,6 +76,15 @@ jobs:
           sudo gem install cocoapods --no-document
           pod --version
           pod install --repo-update --project-directory=iosApp
+
+      - name: Install Rosetta for x86_64 ML Kit simulator binaries
+        run: |
+          set -euo pipefail
+          if ! /usr/bin/arch -x86_64 /usr/bin/true >/dev/null 2>&1; then
+            sudo softwareupdate --install-rosetta --agree-to-license
+          fi
+          /usr/bin/arch -x86_64 /usr/bin/true
+
 
       - name: Build SwiftUI app and KMP framework
         run: |
