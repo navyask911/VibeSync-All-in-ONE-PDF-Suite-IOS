@@ -36,7 +36,7 @@ concurrency:
 jobs:
   stream:
     name: Build and stream VibeSync iOS Simulator
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     timeout-minutes: 60
     env:
       GH_TOKEN: ${{ github.token }}
@@ -46,6 +46,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
+      - name: Select Xcode 16.4 toolchain
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4

@@ -28,11 +28,17 @@ concurrency:
 jobs:
   build-ios-simulator:
     name: Build iOS Simulator (arm64)
-    runs-on: macos-15-arm64
+    runs-on: macos-15
     timeout-minutes: 45
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4 toolchain
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -77,30 +83,29 @@ jobs:
           DEVICE_UDID=$(printf '%s' "$SIMULATOR_DEVICES" | python3 -c '
           import json, sys
           devices = json.load(sys.stdin).get("devices", {})
+          runtime = "com.apple.CoreSimulator.SimRuntime.iOS-18-5"
           candidates = [
-              device["udid"]
-              for runtime_devices in devices.values()
-              for device in runtime_devices
+              device["udid"] for device in devices.get(runtime, [])
               if device.get("isAvailable") and device.get("name", "").startswith("iPhone")
           ]
           print(candidates[0] if candidates else "")
           ')
           if [ -z "$DEVICE_UDID" ]; then
-            echo "No pre-created iPhone simulator found; creating one from an installed iOS runtime."
+            echo "No pre-created iOS 18.5 iPhone simulator found; creating one."
             SIM_RUNTIME=$(xcrun simctl list runtimes -j | python3 -c '
             import json, sys
             runtimes = json.load(sys.stdin).get("runtimes", [])
-            candidates = [r["identifier"] for r in runtimes if r.get("isAvailable") and r.get("platform") == "iOS"]
-            print(candidates[-1] if candidates else "")
+            candidates = [r["identifier"] for r in runtimes if r.get("isAvailable") and r.get("platform") == "iOS" and r.get("version") == "18.5"]
+            print(candidates[0] if candidates else "")
             ')
             DEVICE_TYPE=$(xcrun simctl list devicetypes -j | python3 -c '
             import json, sys
             types = json.load(sys.stdin).get("devicetypes", [])
-            candidates = [d["identifier"] for d in types if d.get("identifier", "").startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-")]
-            print(candidates[-1] if candidates else "")
+            candidates = [d["identifier"] for d in types if d.get("identifier") == "com.apple.CoreSimulator.SimDeviceType.iPhone-16"]
+            print(candidates[0] if candidates else "")
             ')
             if [ -z "$SIM_RUNTIME" ] || [ -z "$DEVICE_TYPE" ]; then
-              echo "::error::No iOS Simulator runtime or iPhone device type is installed on this hosted runner."
+              echo "::error::The preinstalled iOS 18.5 simulator runtime or iPhone 16 device type is missing."
               xcrun simctl list runtimes
               xcrun simctl list devicetypes
               exit 1
