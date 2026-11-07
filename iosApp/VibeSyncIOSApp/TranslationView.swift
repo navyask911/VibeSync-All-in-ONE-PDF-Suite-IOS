@@ -161,7 +161,7 @@ struct TranslationView: View {
     private var pdfImportSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Label("Extract text from PDF", systemImage: "doc.text.viewfinder")
-                .vibeSyncStyle(.titleMedium)
+                .font(VibeSyncTypography.titleMedium)
                 .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
             Text("Digital text is read directly. Image-only scanned pages are processed with the existing Vision OCR engine.")
                 .vibeSyncStyle(.bodyMedium)
@@ -373,14 +373,18 @@ struct TranslationView: View {
         return "en"
     }
 
-    private func importPDF(_ result: Result<URL, Error>) {
+    private func importPDF(_ result: Result<[URL], Error>) {
         Task { @MainActor in
             isProcessing = true
             translatedText = ""
             extractionWarning = nil
             statusMessage = "Opening PDF…"
             do {
-                let url = try result.get()
+                guard let url = try result.get().first else {
+                    isProcessing = false
+                    statusMessage = "No PDF was selected."
+                    return
+                }
                 let hasSecurityScope = url.startAccessingSecurityScopedResource()
                 defer {
                     if hasSecurityScope { url.stopAccessingSecurityScopedResource() }

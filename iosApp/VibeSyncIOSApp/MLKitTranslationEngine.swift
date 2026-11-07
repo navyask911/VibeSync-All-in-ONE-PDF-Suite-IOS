@@ -29,16 +29,18 @@ struct MLKitTranslationEngine {
         from sourceLanguageCode: String,
         to targetLanguageCode: String
     ) async throws -> String {
-        let input = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let input = text.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
         guard !input.isEmpty else { throw MLKitTranslationError.emptyInput }
         guard sourceLanguageCode != targetLanguageCode else {
             throw MLKitTranslationError.identicalLanguages
         }
+        // TranslateLanguage is a RawRepresentable newtype; the language tag
+        // is its raw value (for example "en", "es", or "kn").
         guard
-            let sourceLanguage = TranslateLanguage.fromLanguageTag(sourceLanguageCode),
-            let targetLanguage = TranslateLanguage.fromLanguageTag(targetLanguageCode)
+            let sourceLanguage = TranslateLanguage(rawValue: sourceLanguageCode),
+            let targetLanguage = TranslateLanguage(rawValue: targetLanguageCode)
         else {
-            let unsupported = TranslateLanguage.fromLanguageTag(sourceLanguageCode) == nil
+            let unsupported = TranslateLanguage(rawValue: sourceLanguageCode) == nil
                 ? sourceLanguageCode
                 : targetLanguageCode
             throw MLKitTranslationError.unsupportedLanguage(unsupported)
@@ -71,7 +73,7 @@ struct MLKitTranslationEngine {
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let translatedText,
-                          !translatedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                          !translatedText.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines).isEmpty {
                     continuation.resume(returning: translatedText)
                 } else {
                     continuation.resume(throwing: MLKitTranslationError.emptyTranslation)
