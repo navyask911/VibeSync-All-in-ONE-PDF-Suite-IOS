@@ -52,18 +52,20 @@ jobs:
           pod --version
           pod install --repo-update --project-directory=iosApp
 
-      - name: Install iOS Simulator runtime
+      - name: Inspect installed iOS Simulator runtimes
         run: |
           set -euo pipefail
-          xcodebuild -downloadPlatform iOS
-          xcrun simctl list devices available
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun simctl list devicetypes
 
       - name: Run iOS navigation UI tests and PDF engine XCTest
         run: |
           set -euo pipefail
           chmod +x android/gradlew
 
-          DEVICE_UDID=$(xcrun simctl list devices available -j | python3 -c '
+          SIMULATOR_DEVICES=$(xcrun simctl list devices available -j)
+          DEVICE_UDID=$(printf '%s' "$SIMULATOR_DEVICES" | python3 -c '
           import json, sys
           devices = json.load(sys.stdin).get("devices", {})
           candidates = [
@@ -80,16 +82,16 @@ jobs:
             import json, sys
             runtimes = json.load(sys.stdin).get("runtimes", [])
             candidates = [r["identifier"] for r in runtimes if r.get("isAvailable") and r.get("platform") == "iOS"]
-            print(candidates[0] if candidates else "")
+            print(candidates[-1] if candidates else "")
             ')
             DEVICE_TYPE=$(xcrun simctl list devicetypes -j | python3 -c '
             import json, sys
             types = json.load(sys.stdin).get("devicetypes", [])
             candidates = [d["identifier"] for d in types if d.get("identifier", "").startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-")]
-            print(candidates[0] if candidates else "")
+            print(candidates[-1] if candidates else "")
             ')
             if [ -z "$SIM_RUNTIME" ] || [ -z "$DEVICE_TYPE" ]; then
-              echo "::error::No iOS Simulator runtime or iPhone device type is installed."
+              echo "::error::No iOS Simulator runtime or iPhone device type is installed on this hosted runner."
               xcrun simctl list runtimes
               xcrun simctl list devicetypes
               exit 1
