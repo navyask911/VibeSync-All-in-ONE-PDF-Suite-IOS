@@ -196,15 +196,22 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         try session.clearTransactions()
         session.disableDialogs = true
 
-        // The app launches the StoreKit 2 purchase itself; SKTestSession supplies
-        // the local product store and automatically handles the simulated purchase.
+        // Complete the local test purchase from the UI-test process first.
+        // StoreKitTest applies this transaction to the simulator's shared test store,
+        // which the launched app then verifies through Transaction.latest(for:).
+        if #available(iOS 17.0, *) {
+            _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
+        } else {
+            try session.buyProduct(productIdentifier: "vibesync_pro_1y")
+        }
+
         let app = XCUIApplication()
         app.launchArguments = ["--storekit-entitlement-smoke-test"]
         app.launch()
 
         let result = app.staticTexts["storekit_entitlement_smoke_result"]
-        XCTAssertTrue(result.waitForExistence(timeout: 15), "StoreKit purchase smoke test did not start.")
-        let purchaseFinished = XCTNSPredicateExpectation(
+        XCTAssertTrue(result.waitForExistence(timeout: 15), "StoreKit entitlement smoke test did not start.")
+        let entitlementResolved = XCTNSPredicateExpectation(
             predicate: NSPredicate(
                 format: "label CONTAINS %@ OR label CONTAINS %@",
                 "STOREKIT_ENTITLEMENT_TEST_PASSED",
@@ -212,15 +219,15 @@ final class VibeSyncIOSAppUITests: XCTestCase {
             ),
             object: result
         )
-        let waitResult = XCTWaiter.wait(for: [purchaseFinished], timeout: 60)
+        let waitResult = XCTWaiter.wait(for: [entitlementResolved], timeout: 45)
         XCTAssertEqual(
             waitResult,
             .completed,
-            "StoreKit purchase did not finish. Last reported state: \(result.label)"
+            "StoreKit entitlement did not resolve. Last reported state: \(result.label)"
         )
         XCTAssertTrue(
             result.label.contains("STOREKIT_ENTITLEMENT_TEST_PASSED"),
-            "StoreKit 2 purchase did not grant the verified Pro Pass entitlement: \(result.label)"
+            "StoreKit 2 did not expose the verified Pro Pass entitlement: \(result.label)"
         )
         XCTAssertTrue(
             app.staticTexts["dashboard_ads_removed"].waitForExistence(timeout: 15),

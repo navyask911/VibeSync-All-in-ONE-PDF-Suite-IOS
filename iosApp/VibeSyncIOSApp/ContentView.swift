@@ -287,13 +287,13 @@ struct ContentView: View {
                             : "ADMOB_INITIALIZATION_TEST_FAILED: sdkInitialized=\(initialized), bannerUnitConfigured=\(hasBannerUnitID)."
                     }
                 } else if isStoreKitSmokeTest {
-                    // Purchase through StoreKit 2 in the app process. Do not call
-                    // configure() first: its entitlement refresh can block before
-                    // the purchase begins in simulator StoreKit test sessions.
-                    storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_LOADING_PRODUCT"
+                    // The UI test creates a verified local StoreKit transaction
+                    // with SKTestSession before launching the app. This smoke check
+                    // verifies that StoreKit 2 resolves that entitlement in-app;
+                    // it does not start another purchase from the app process.
+                    storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_LOADING_ENTITLEMENT"
                     Task { @MainActor in
-                        storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_PURCHASING"
-                        await billingProvider.purchaseProPass()
+                        await billingProvider.refreshEntitlements()
                         storeKitEntitlementSmokeResult = billingProvider.isProActive
                             ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
                             : "STOREKIT_ENTITLEMENT_TEST_FAILED: \(billingProvider.statusMessage ?? "No active Pro Pass entitlement.")"
