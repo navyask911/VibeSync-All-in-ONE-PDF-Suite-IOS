@@ -1,4 +1,4 @@
-name: iOS Simulator Build
+name: iOS Device Archive and Simulator Tests
 
 on:
   workflow_dispatch:
@@ -16,20 +16,21 @@ on:
       - "android/gradle/**"
       - "android/gradlew"
       - ".github/workflows/ios_build.yml"
+      - "README_APPSTORE.md"
 
 permissions:
   contents: write
 
 concurrency:
-  group: ios-simulator-mlkit-x64-${{ github.ref }}
+  group: ios-device-archive-and-tests-${{ github.ref }}
   # Keep an active Xcode build alive; do not cancel it when another run is queued.
   cancel-in-progress: false
 
 jobs:
-  build-ios-simulator:
-    name: Build iOS Simulator (arm64)
+  build-ios-test-and-device-archive:
+    name: Run Simulator XCTests and create unsigned iOS device IPA
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -159,6 +160,70 @@ jobs:
           cd "$RUNNER_TEMP/VibeSyncDerivedData/Build/Products/Debug-iphonesimulator"
           ditto -c -k --sequesterRsrc --keepParent VibeSyncIOSApp.app "$RUNNER_TEMP/VibeSyncIOSApp.zip"
 
+      - name: Archive unsigned iOS device app and package IPA
+        if: success()
+        run: |
+          set -euo pipefail
+
+          DEVICE_ARCHIVE="$RUNNER_TEMP/VibeSyncIOSApp-unsigned.xcarchive"
+          DEVICE_DERIVED_DATA="$RUNNER_TEMP/VibeSyncDeviceDerivedData"
+          APP_PATH="$DEVICE_ARCHIVE/Products/Applications/VibeSyncIOSApp.app"
+          IPA_ROOT="$RUNNER_TEMP/VibeSyncIOSIPA"
+          IPA_PATH="$RUNNER_TEMP/VibeSyncIOSApp-unsigned.ipa"
+
+          # Build the physical-device arm64 framework, not an iOS Simulator slice.
+          xcodebuild archive \
+            -workspace iosApp/VibeSyncIOS.xcworkspace \
+            -scheme VibeSyncIOSApp \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$DEVICE_ARCHIVE" \
+            -derivedDataPath "$DEVICE_DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            ARCHS=arm64 \
+            KOTLIN_SIMULATOR_TARGET=iosArm64
+
+          test -d "$APP_PATH"
+          APP_EXECUTABLE=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP_PATH/Info.plist")
+          test -s "$APP_PATH/$APP_EXECUTABLE"
+
+          # Keep the app bundle unsigned; Sideloadly can re-sign it with the user's Apple ID.
+          if [ -d "$APP_PATH/_CodeSignature" ]; then
+            echo "::error::Expected an unsigned app bundle, but _CodeSignature is present."
+            exit 1
+          fi
+
+          rm -rf "$IPA_ROOT"
+          mkdir -p "$IPA_ROOT/Payload"
+          ditto "$APP_PATH" "$IPA_ROOT/Payload/VibeSyncIOSApp.app"
+          (cd "$IPA_ROOT" && zip -qry "$IPA_PATH" Payload)
+          test -s "$IPA_PATH"
+
+          python3 - "$IPA_PATH" <<'PY'
+          import plistlib
+          import sys
+          import zipfile
+
+          ipa_path = sys.argv[1]
+          app_root = "Payload/VibeSyncIOSApp.app"
+          with zipfile.ZipFile(ipa_path) as ipa:
+              names = set(ipa.namelist())
+              info_path = f"{app_root}/Info.plist"
+              if info_path not in names:
+                  raise SystemExit("Unsigned IPA is missing Payload/VibeSyncIOSApp.app/Info.plist")
+              info = plistlib.loads(ipa.read(info_path))
+              executable = info.get("CFBundleExecutable")
+              if not executable or f"{app_root}/{executable}" not in names:
+                  raise SystemExit("Unsigned IPA is missing its app executable")
+              if f"{app_root}/_CodeSignature/CodeResources" in names:
+                  raise SystemExit("Expected an unsigned IPA, but the app signature resource exists")
+              print("Verified unsigned device IPA:", ipa_path)
+              print("Bundle identifier:", info.get("CFBundleIdentifier", "unknown"))
+              print("Executable:", executable)
+          PY
+
       - name: Export screenshots captured by automated navigation taps
         run: |
           set -euo pipefail
@@ -283,5 +348,14 @@ jobs:
         with:
           name: VibeSyncIOSApp-iOS-Simulator
           path: ${{ runner.temp }}/VibeSyncIOSApp.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload unsigned iOS device IPA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeSyncIOSApp-iOS-Unsigned-IPA
+          path: ${{ runner.temp }}/VibeSyncIOSApp-unsigned.ipa
           if-no-files-found: error
           retention-days: 14

@@ -36,13 +36,13 @@ final class AdMobProvider: NSObject, ObservableObject, AdProvider {
 
     func initialize() async -> Bool {
         guard AdMobConfiguration.isConfigured(AdMobConfiguration.applicationID) else {
-            return KotlinBoolean(bool: false)
+            return false
         }
-        guard !isInitialized else { return KotlinBoolean(bool: true) }
+        guard !isInitialized else { return true }
 
-        MobileAds.shared.start()
+        await MobileAds.shared.start()
         isInitialized = true
-        return KotlinBoolean(bool: true)
+        return true
     }
 
     nonisolated func showInterstitial(placementId: String) async throws -> KotlinBoolean {
