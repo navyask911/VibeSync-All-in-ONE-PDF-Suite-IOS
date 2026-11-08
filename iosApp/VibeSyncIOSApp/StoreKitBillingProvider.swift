@@ -75,7 +75,7 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         do {
             let completed = try await purchase(productId: StoreKitBillingConstants.proPassProductID)
             await refreshEntitlements()
-            if completed && isProActive {
+            if completed.boolValue && isProActive {
                 statusMessage = "VibeSync PDF Pro is active. Ads are removed."
             } else {
                 statusMessage = "The purchase was cancelled or is awaiting App Store approval."
@@ -101,13 +101,13 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         }
     }
 
-    nonisolated func isEntitled(productId: String) async throws -> Bool {
-        await Self.currentEntitledProductIDs().contains(productId)
+    nonisolated func isEntitled(productId: String) async throws -> KotlinBoolean {
+        KotlinBoolean(bool: await Self.currentEntitledProductIDs().contains(productId))
     }
 
-    nonisolated func purchase(productId: String) async throws -> Bool {
+    nonisolated func purchase(productId: String) async throws -> KotlinBoolean {
         guard let product = try await Product.products(for: [productId]).first else {
-            return false
+            return KotlinBoolean(bool: false)
         }
 
         switch try await product.purchase() {
@@ -115,11 +115,11 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
             let transaction = try Self.verifiedTransaction(verification)
             await transaction.finish()
             await self.refreshEntitlements()
-            return await self.isEntitled(productId: productId)
+            return KotlinBoolean(bool: await self.isEntitled(productId: productId).boolValue)
         case .pending, .userCancelled:
-            return false
+            return KotlinBoolean(bool: false)
         @unknown default:
-            return false
+            return KotlinBoolean(bool: false)
         }
     }
 

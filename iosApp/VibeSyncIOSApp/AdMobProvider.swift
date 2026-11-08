@@ -36,16 +36,16 @@ final class AdMobProvider: NSObject, ObservableObject, AdProvider {
 
     func initialize() async -> Bool {
         guard AdMobConfiguration.isConfigured(AdMobConfiguration.applicationID) else {
-            return false
+            return KotlinBoolean(bool: false)
         }
-        guard !isInitialized else { return true }
+        guard !isInitialized else { return KotlinBoolean(bool: true) }
 
         MobileAds.shared.start()
         isInitialized = true
-        return true
+        return KotlinBoolean(bool: true)
     }
 
-    nonisolated func showInterstitial(placementId: String) async throws -> Bool {
+    nonisolated func showInterstitial(placementId: String) async throws -> KotlinBoolean {
         let proIsActive = await MainActor.run {
             StoreKitBillingProvider.shared.isProActive
         }
@@ -53,24 +53,24 @@ final class AdMobProvider: NSObject, ObservableObject, AdProvider {
             AdMobProvider.shared.isInitialized
         }
         guard !proIsActive, sdkIsInitialized else {
-            return false
+            return KotlinBoolean(bool: false)
         }
 
         let unitID = AdMobConfiguration.isConfigured(placementId)
             ? placementId
             : AdMobConfiguration.interstitialUnitID
         guard AdMobConfiguration.isConfigured(unitID) else {
-            return false
+            return KotlinBoolean(bool: false)
         }
 
         let ad = try await InterstitialAd.load(with: unitID, request: Request())
         guard let viewController = await MainActor.run(body: { Self.topViewController() }) else {
-            return false
+            return KotlinBoolean(bool: false)
         }
         await MainActor.run {
             ad.present(from: viewController)
         }
-        return true
+        return KotlinBoolean(bool: true)
     }
 
     @MainActor

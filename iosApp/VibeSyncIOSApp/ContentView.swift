@@ -193,19 +193,19 @@ struct ContentView: View {
                     .padding(.bottom, 112)
                 }
                 .background(VibeSyncColors.background(for: colorScheme))
-            }
-            Group {
-                if billingProvider.hasResolvedEntitlements && billingProvider.isProActive {
-                    Text("Ads removed with VibeSync PDF Pro")
-                        .font(.footnote)
-                        .foregroundStyle(VibeSyncColors.successGreen)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 5)
-                        .accessibilityIdentifier("dashboard_ads_removed")
-                } else if billingProvider.hasResolvedEntitlements && AdMobConfiguration.hasBannerUnitID && adProvider.isInitialized {
-                    AdMobBannerView(adUnitID: AdMobConfiguration.bannerUnitID, isInitialized: adProvider.isInitialized)
-                        .padding(.horizontal, 4)
-                        .accessibilityIdentifier("dashboard_banner_ad")
+                Group {
+                    if billingProvider.hasResolvedEntitlements && billingProvider.isProActive {
+                        Text("Ads removed with VibeSync PDF Pro")
+                            .font(.footnote)
+                            .foregroundStyle(VibeSyncColors.successGreen)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 5)
+                            .accessibilityIdentifier("dashboard_ads_removed")
+                    } else if billingProvider.hasResolvedEntitlements && AdMobConfiguration.hasBannerUnitID && adProvider.isInitialized {
+                        AdMobBannerView(adUnitID: AdMobConfiguration.bannerUnitID, isInitialized: adProvider.isInitialized)
+                            .padding(.horizontal, 4)
+                            .accessibilityIdentifier("dashboard_banner_ad")
+                    }
                 }
             }
             .background(VibeSyncColors.background(for: colorScheme).ignoresSafeArea())
