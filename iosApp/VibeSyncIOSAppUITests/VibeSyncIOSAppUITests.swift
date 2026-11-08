@@ -181,7 +181,8 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         XCTAssertTrue(result.label.contains("pdfPages="), "The PDF document was not validated.")
     }
 
-    func testStoreKitLocalSubscriptionGrantsProAndRemovesDashboardAds() async throws {
+    @MainActor
+    func testStoreKitLocalSubscriptionGrantsProAndRemovesDashboardAds() throws {
         guard let storeKitURL = Bundle(for: Self.self).url(
             forResource: "StoreKitConfig",
             withExtension: "storekit"
@@ -194,23 +195,25 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         try session.resetToDefaultState()
         try session.clearTransactions()
         session.disableDialogs = true
-        if #available(iOS 17.0, *) {
-            _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
-        } else {
-            // StoreKitTest's async Swift purchase helper is iOS 17+.
-            // Keep the iOS 16 test-target deployment compatible via its legacy helper.
-            try session.buyProduct(productIdentifier: "vibesync_pro_1y")
-        }
 
+        // The app launches the StoreKit 2 purchase itself; SKTestSession supplies
+        // the local product store and automatically handles the simulated purchase.
         let app = XCUIApplication()
         app.launchArguments = ["--storekit-entitlement-smoke-test"]
         app.launch()
 
         let result = app.staticTexts["storekit_entitlement_smoke_result"]
-        XCTAssertTrue(result.waitForExistence(timeout: 30), "StoreKit entitlement smoke test did not report a result.")
+        XCTAssertTrue(result.waitForExistence(timeout: 15), "StoreKit purchase smoke test did not start.")
+        let purchaseFinished = NSPredicate(
+            format: "label CONTAINS %@ OR label CONTAINS %@",
+            "STOREKIT_ENTITLEMENT_TEST_PASSED",
+            "STOREKIT_ENTITLEMENT_TEST_FAILED"
+        )
+        expectation(for: purchaseFinished, evaluatedWith: result)
+        waitForExpectations(timeout: 60)
         XCTAssertTrue(
             result.label.contains("STOREKIT_ENTITLEMENT_TEST_PASSED"),
-            "StoreKit did not expose the verified Pro Pass entitlement: \(result.label)"
+            "StoreKit 2 purchase did not grant the verified Pro Pass entitlement: \(result.label)"
         )
         XCTAssertTrue(
             app.staticTexts["dashboard_ads_removed"].waitForExistence(timeout: 15),
@@ -230,6 +233,7 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         )
     }
 
+    @MainActor
     func testAdMobInitializesWithConfiguredSimulatorTestApplicationID() throws {
         let app = XCUIApplication()
         app.launchArguments = ["--admob-initialization-smoke-test"]

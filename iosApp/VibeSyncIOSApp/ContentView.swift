@@ -215,6 +215,7 @@ struct ContentView: View {
                     } else if billingProvider.hasResolvedEntitlements && AdMobConfiguration.hasBannerUnitID && adProvider.isInitialized {
                         AdMobBannerView(adUnitID: AdMobConfiguration.bannerUnitID, isInitialized: adProvider.isInitialized)
                             .padding(.horizontal, 4)
+                            .accessibilityElement(children: .contain)
                             .accessibilityIdentifier("dashboard_banner_ad")
                     }
                 }
@@ -274,22 +275,31 @@ struct ContentView: View {
                 let isStoreKitSmokeTest = arguments.contains("--storekit-entitlement-smoke-test")
 
                 if isAdMobSmokeTest {
-                    // Do not wait for StoreKit product discovery in an AdMob-only test.
-                    Task { @MainActor in
-                        let initialized = await adProvider.initialize()
-                        admobInitializationSmokeResult = initialized
-                            ? "ADMOB_INITIALIZATION_TEST_PASSED"
-                            : "ADMOB_INITIALIZATION_TEST_FAILED: AdMob app ID is not configured."
-                    }
-                } else if isStoreKitSmokeTest {
-                    // The test session has already created the local transaction.
-                    // Query entitlements directly instead of fetching the live product
-                    // catalogue or starting unrelated AdMob SDK initialization.
+                    // The banner visibility gate also requires resolved StoreKit
+                    // entitlement state. Resolve it before initializing AdMob so this
+                    // isolated smoke test exercises the same non-Pro banner path.
                     Task { @MainActor in
                         await billingProvider.refreshEntitlements()
-                        storeKitEntitlementSmokeResult = billingProvider.isProActive
-                            ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
-                            : "STOREKIT_ENTITLEMENT_TEST_FAILED: no verified Pro Pass entitlement."
+                        let initialized = await adProvider.initialize()
+                        let hasBannerUnitID = AdMobConfiguration.hasBannerUnitID
+                        admobInitializationSmokeResult = initialized && hasBannerUnitID
+                            ? "ADMOB_INITIALIZATION_TEST_PASSED"
+                            : "ADMOB_INITIALIZATION_TEST_FAILED: sdkInitialized=\(initialized), bannerUnitConfigured=\(hasBannerUnitID)."
+                    }
+                } else if isStoreKitSmokeTest {
+                    // Start the real StoreKit 2 purchase inside the app process. The
+                    // SKTestSession in the UI test supplies the local StoreKit store.
+                    storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_RUNNING"
+                    Task { @MainActor in
+                        do {
+                            await billingProvider.configure()
+                            await billingProvider.purchaseProPass()
+                            storeKitEntitlementSmokeResult = billingProvider.isProActive
+                                ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
+                                : "STOREKIT_ENTITLEMENT_TEST_FAILED: \(billingProvider.statusMessage ?? "No active Pro Pass entitlement.")"
+                        } catch {
+                            storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_FAILED: \(error.localizedDescription)"
+                        }
                     }
                 } else {
                     // Normal app startup still configures both production providers.

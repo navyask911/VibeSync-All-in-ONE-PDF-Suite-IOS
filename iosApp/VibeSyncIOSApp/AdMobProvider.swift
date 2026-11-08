@@ -115,6 +115,9 @@ private struct AdMobBannerContainer: UIViewRepresentable {
     func makeUIView(context: Context) -> BannerView {
         let banner = BannerView(adSize: adSize)
         banner.adUnitID = adUnitID
+        // Surface the actual UIKit banner slot to UI automation and accessibility.
+        banner.accessibilityIdentifier = "dashboard_banner_ad"
+        banner.accessibilityLabel = "Advertisement"
         if isInitialized {
             banner.load(Request())
             context.coordinator.didLoad = true
