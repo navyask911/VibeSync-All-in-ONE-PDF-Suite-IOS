@@ -564,7 +564,7 @@ struct TranslationView: View {
             let data = try TranslationExportFactory.makeData(for: translatedText, format: format)
             guard
                 let stagedURI = IosPlatformProviders.shared.stageExportCopy(
-                    data: data as NSData,
+                    data: data,
                     suggestedFileName: format.fileName
                 ),
                 let stagedURL = URL(string: stagedURI),
