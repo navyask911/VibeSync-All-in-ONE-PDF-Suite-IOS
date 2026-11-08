@@ -99,6 +99,31 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 dashboardHeader
 
+                // Keep billing/ads smoke-test output in the eager dashboard hierarchy.
+                // A LazyVStack may defer creating off-screen test labels, making XCUI
+                // unable to find the result even after the async check has completed.
+                Group {
+                    if let admobInitializationSmokeResult {
+                        Text(admobInitializationSmokeResult)
+                            .vibeSyncStyle(.bodyMedium)
+                            .foregroundStyle(admobInitializationSmokeResult.contains("ADMOB_INITIALIZATION_TEST_PASSED")
+                                             ? VibeSyncColors.successGreen
+                                             : VibeSyncColors.dangerRed)
+                            .accessibilityIdentifier("admob_initialization_smoke_result")
+                    }
+
+                    if let storeKitEntitlementSmokeResult {
+                        Text(storeKitEntitlementSmokeResult)
+                            .vibeSyncStyle(.bodyMedium)
+                            .foregroundStyle(storeKitEntitlementSmokeResult.contains("STOREKIT_ENTITLEMENT_TEST_PASSED")
+                                             ? VibeSyncColors.successGreen
+                                             : VibeSyncColors.dangerRed)
+                            .accessibilityIdentifier("storekit_entitlement_smoke_result")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 16)
+
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 14) {
                         privacyBanner
@@ -129,20 +154,6 @@ struct ContentView: View {
                                                  ? VibeSyncColors.successGreen
                                                  : VibeSyncColors.dangerRed)
                                 .accessibilityIdentifier("signature_embedding_smoke_result")
-                        }
-
-                        if let admobInitializationSmokeResult {
-                            Text(admobInitializationSmokeResult)
-                                .vibeSyncStyle(.bodyMedium)
-                                .foregroundStyle(admobInitializationSmokeResult.contains("ADMOB_INITIALIZATION_TEST_PASSED") ? VibeSyncColors.successGreen : VibeSyncColors.dangerRed)
-                                .accessibilityIdentifier("admob_initialization_smoke_result")
-                        }
-
-                        if let storeKitEntitlementSmokeResult {
-                            Text(storeKitEntitlementSmokeResult)
-                                .vibeSyncStyle(.bodyMedium)
-                                .foregroundStyle(storeKitEntitlementSmokeResult.contains("STOREKIT_ENTITLEMENT_TEST_PASSED") ? VibeSyncColors.successGreen : VibeSyncColors.dangerRed)
-                                .accessibilityIdentifier("storekit_entitlement_smoke_result")
                         }
 
                         if let translationExportSmokeResult {
@@ -259,19 +270,32 @@ struct ContentView: View {
                     adProvider: adProvider
                 )
                 let arguments = ProcessInfo.processInfo.arguments
-                Task { @MainActor in
-                    await billingProvider.configure()
-                    let initialized = await adProvider.initialize()
-                    if arguments.contains("--admob-initialization-smoke-test") {
+                let isAdMobSmokeTest = arguments.contains("--admob-initialization-smoke-test")
+                let isStoreKitSmokeTest = arguments.contains("--storekit-entitlement-smoke-test")
+
+                if isAdMobSmokeTest {
+                    // Do not wait for StoreKit product discovery in an AdMob-only test.
+                    Task { @MainActor in
+                        let initialized = await adProvider.initialize()
                         admobInitializationSmokeResult = initialized
                             ? "ADMOB_INITIALIZATION_TEST_PASSED"
                             : "ADMOB_INITIALIZATION_TEST_FAILED: AdMob app ID is not configured."
                     }
-                    if arguments.contains("--storekit-entitlement-smoke-test") {
+                } else if isStoreKitSmokeTest {
+                    // The test session has already created the local transaction.
+                    // Query entitlements directly instead of fetching the live product
+                    // catalogue or starting unrelated AdMob SDK initialization.
+                    Task { @MainActor in
                         await billingProvider.refreshEntitlements()
                         storeKitEntitlementSmokeResult = billingProvider.isProActive
                             ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
                             : "STOREKIT_ENTITLEMENT_TEST_FAILED: no verified Pro Pass entitlement."
+                    }
+                } else {
+                    // Normal app startup still configures both production providers.
+                    Task { @MainActor in
+                        await billingProvider.configure()
+                        _ = await adProvider.initialize()
                     }
                 }
                 if arguments.contains("--pdf-engine-smoke-test") {
