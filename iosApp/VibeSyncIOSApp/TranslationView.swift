@@ -1,5 +1,8 @@
 import PDFKit
+import PhotosUI
+import Shared
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 private struct TranslationLanguageOption: Identifiable, Hashable {
@@ -40,7 +43,16 @@ struct TranslationView: View {
     @State private var isProcessing = false
     @State private var statusMessage = "Import a PDF or enter text to translate on this device."
     @State private var isShowingPDFImporter = false
+    @State private var isShowingCamera = false
+    @State private var selectedPhoto: PhotosPickerItem?
     @State private var isShowingModelConsent = false
+    @State private var isExportingFile = false
+    @State private var exportDocument: TranslationFileDocument?
+    @State private var exportContentType: UTType = .plainText
+    @State private var exportFileName = "translated_text"
+    @State private var stagedExportURL: URL?
+    @State private var isShowingShareSheet = false
+    @State private var shareExportURL: URL?
     @State private var pageProgress = ""
     @State private var extractionWarning: String?
 
@@ -62,6 +74,7 @@ struct TranslationView: View {
             VStack(alignment: .leading, spacing: 16) {
                 introduction
                 pdfImportSection
+                imageImportSection
                 languageSelection
                 originalTextSection
 
@@ -144,6 +157,41 @@ struct TranslationView: View {
         } message: {
             Text("The first translation downloads the \(sourceLanguageName) and \(targetLanguageName) language models over Wi-Fi (about 30 MB each). After download, translation runs on this device.")
         }
+        .onChange(of: selectedPhoto) { item in
+            guard let item else { return }
+            Task { await importGalleryImage(item) }
+        }
+        .sheet(isPresented: $isShowingCamera) {
+            TranslationCameraCaptureView(
+                onImageCaptured: { image in
+                    isShowingCamera = false
+                    recognizeImage(image, sourceDescription: "Camera image")
+                },
+                onCancel: {
+                    isShowingCamera = false
+                }
+            )
+            .ignoresSafeArea()
+        }
+        .sheet(isPresented: $isShowingShareSheet, onDismiss: cleanupShareExport) {
+            if let shareExportURL {
+                TranslationShareSheet(activityItems: [shareExportURL])
+            }
+        }
+        .fileExporter(
+            isPresented: $isExportingFile,
+            document: exportDocument,
+            contentType: exportContentType,
+            defaultFilename: exportFileName
+        ) { result in
+            switch result {
+            case .success:
+                statusMessage = "Translation file saved successfully."
+            case .failure(let error):
+                statusMessage = "Export failed: \(error.localizedDescription)"
+            }
+            cleanupStagedExport()
+        }
         .tint(VibeSyncColors.primary(for: colorScheme))
     }
 
@@ -152,7 +200,7 @@ struct TranslationView: View {
             Text("Translate scanned documents")
                 .vibeSyncStyle(.titleLarge)
                 .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
-            Text("Import a PDF to extract its text with Vision OCR, or type/paste text below. Choose languages and translate privately on this device.")
+            Text("Import a PDF or image to extract text with Vision OCR, or type/paste text below. Choose languages and translate privately on this device.")
                 .vibeSyncStyle(.bodyMedium)
                 .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
         }
@@ -177,6 +225,53 @@ struct TranslationView: View {
             .buttonStyle(.borderedProminent)
             .tint(VibeSyncColors.primary(for: colorScheme))
             .accessibilityIdentifier("translation_import_button")
+        }
+        .padding(14)
+        .background(VibeSyncColors.surfaceVariant(for: colorScheme).opacity(0.65))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var imageImportSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label("Scan an image", systemImage: "text.viewfinder")
+                .font(VibeSyncTypography.titleMedium)
+                .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+            HStack(spacing: 10) {
+                Button {
+                    guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+                        statusMessage = "Camera is unavailable on this device. Choose Photo Library instead."
+                        return
+                    }
+                    isShowingCamera = true
+                } label: {
+                    Label("Camera", systemImage: "camera")
+                        .font(VibeSyncTypography.labelLarge)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.bordered)
+                .tint(VibeSyncColors.primary(for: colorScheme))
+                .disabled(isProcessing || !UIImagePickerController.isSourceTypeAvailable(.camera))
+                .accessibilityIdentifier("translation_camera_button")
+
+                PhotosPicker(
+                    selection: $selectedPhoto,
+                    matching: .images,
+                    photoLibrary: .shared()
+                ) {
+                    Label("Photo Library", systemImage: "photo.on.rectangle")
+                        .font(VibeSyncTypography.labelLarge)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.bordered)
+                .tint(VibeSyncColors.primary(for: colorScheme))
+                .disabled(isProcessing)
+                .accessibilityIdentifier("translation_photo_library_button")
+            }
+            Text("Camera and selected photos are processed with on-device Vision OCR before text is added below.")
+                .vibeSyncStyle(.bodyMedium)
+                .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
         }
         .padding(14)
         .background(VibeSyncColors.surfaceVariant(for: colorScheme).opacity(0.65))
@@ -283,11 +378,43 @@ struct TranslationView: View {
                     .vibeSyncStyle(.titleMedium)
                     .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
                 Spacer()
-                ShareLink(item: translatedText) {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                Menu {
+                    Section("Save a copy") {
+                        Button {
+                            prepareExport(format: .text, destination: .save)
+                        } label: {
+                            Label("Export TXT", systemImage: "doc.text")
+                        }
+                        .accessibilityIdentifier("translation_export_txt")
+
+                        Button {
+                            prepareExport(format: .pdf, destination: .save)
+                        } label: {
+                            Label("Export PDF", systemImage: "doc.richtext")
+                        }
+                        .accessibilityIdentifier("translation_export_pdf")
+                    }
+
+                    Section("Share file") {
+                        Button {
+                            prepareExport(format: .text, destination: .share)
+                        } label: {
+                            Label("Share TXT", systemImage: "square.and.arrow.up")
+                        }
+                        .accessibilityIdentifier("translation_share_txt")
+
+                        Button {
+                            prepareExport(format: .pdf, destination: .share)
+                        } label: {
+                            Label("Share PDF", systemImage: "square.and.arrow.up")
+                        }
+                        .accessibilityIdentifier("translation_share_pdf")
+                    }
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
                         .font(VibeSyncTypography.labelLarge)
                 }
-                .accessibilityIdentifier("translation_share_result")
+                .accessibilityIdentifier("translation_export_menu")
             }
             Text("\(sourceLanguageName) → \(targetLanguageName)")
                 .vibeSyncStyle(.bodyMedium)
@@ -373,6 +500,112 @@ struct TranslationView: View {
         return "en"
     }
 
+    private func recognizeImage(_ image: UIImage, sourceDescription: String) {
+        isProcessing = true
+        translatedText = ""
+        extractionWarning = nil
+        pageProgress = "Recognizing text in image…"
+        statusMessage = "Running Vision OCR on the selected image."
+
+        Task { @MainActor in
+            defer {
+                pageProgress = ""
+                isProcessing = false
+            }
+            do {
+                let observations = try await OcrEngine.recognize(image: image)
+                let recognizedText = observations
+                    .sorted { $0.normalizedBounds.midY > $1.normalizedBounds.midY }
+                    .map(\.text)
+                    .joined(separator: "\n")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !recognizedText.isEmpty else {
+                    throw NSError(
+                        domain: "VibeSyncTranslationOCR",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "No readable text was found in the selected image."]
+                    )
+                }
+                originalText = recognizedText
+                sourceLanguageCode = "auto"
+                statusMessage = "Text extracted from \(sourceDescription). Review it below, then tap Translate."
+            } catch {
+                statusMessage = "Image OCR failed: \(error.localizedDescription)"
+            }
+        }
+    }
+
+    @MainActor
+    private func importGalleryImage(_ item: PhotosPickerItem) async {
+        defer { selectedPhoto = nil }
+        isProcessing = true
+        translatedText = ""
+        extractionWarning = nil
+        pageProgress = "Loading selected photo…"
+        statusMessage = "Opening the selected photo."
+
+        do {
+            guard
+                let data = try await item.loadTransferable(type: Data.self),
+                let image = UIImage(data: data)
+            else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            recognizeImage(image, sourceDescription: "Photo Library image")
+        } catch {
+            isProcessing = false
+            pageProgress = ""
+            statusMessage = "Could not load the selected image: \(error.localizedDescription)"
+        }
+    }
+
+    private func prepareExport(format: TranslationExportFormat, destination: TranslationExportDestination) {
+        do {
+            let data = try TranslationExportFactory.makeData(for: translatedText, format: format)
+            guard
+                let stagedURI = IosPlatformProviders.shared.stageExportCopy(
+                    data: data as NSData,
+                    suggestedFileName: format.fileName
+                ),
+                let stagedURL = URL(string: stagedURI),
+                stagedURL.isFileURL
+            else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+
+            switch destination {
+            case .save:
+                let stagedData = try Data(contentsOf: stagedURL)
+                stagedExportURL = stagedURL
+                exportDocument = TranslationFileDocument(data: stagedData)
+                exportContentType = format.contentType
+                exportFileName = format.fileNameWithoutExtension
+                isExportingFile = true
+            case .share:
+                shareExportURL = stagedURL
+                isShowingShareSheet = true
+            }
+            statusMessage = "Prepared \(format.fileName) for \(destination == .save ? "saving" : "sharing")."
+        } catch {
+            statusMessage = "Could not prepare the export: \(error.localizedDescription)"
+        }
+    }
+
+    private func cleanupStagedExport() {
+        if let stagedExportURL {
+            try? FileManager.default.removeItem(at: stagedExportURL)
+            self.stagedExportURL = nil
+        }
+        exportDocument = nil
+    }
+
+    private func cleanupShareExport() {
+        if let shareExportURL {
+            try? FileManager.default.removeItem(at: shareExportURL)
+            self.shareExportURL = nil
+        }
+    }
+
     private func importPDF(_ result: Result<[URL], Error>) {
         Task { @MainActor in
             isProcessing = true
@@ -447,4 +680,218 @@ struct TranslationView: View {
             }
         }
     }
+}
+
+
+enum TranslationExportFormat {
+    case text
+    case pdf
+
+    var fileName: String {
+        switch self {
+        case .text: return "translated_text.txt"
+        case .pdf: return "translated_text.pdf"
+        }
+    }
+
+    var fileNameWithoutExtension: String {
+        switch self {
+        case .text: return "translated_text"
+        case .pdf: return "translated_text"
+        }
+    }
+
+    var contentType: UTType {
+        switch self {
+        case .text: return .plainText
+        case .pdf: return .pdf
+        }
+    }
+
+    var fileExtension: String {
+        switch self {
+        case .text: return "txt"
+        case .pdf: return "pdf"
+        }
+    }
+}
+
+enum TranslationExportDestination: Equatable {
+    case save
+    case share
+}
+
+enum TranslationExportFactory {
+    static func makeData(for text: String, format: TranslationExportFormat) throws -> Data {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+        switch format {
+        case .text:
+            return Data(text.utf8)
+        case .pdf:
+            return makePDFData(for: text)
+        }
+    }
+
+    static func writeTemporaryFile(data: Data, fileExtension: String) throws -> URL {
+        guard !data.isEmpty, ["txt", "pdf"].contains(fileExtension) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("VibeSync-translation-\(UUID().uuidString)")
+            .appendingPathExtension(fileExtension)
+        try data.write(to: url, options: .atomic)
+        return url
+    }
+
+    private static func makePDFData(for text: String) -> Data {
+        let pageBounds = CGRect(x: 0, y: 0, width: 595.28, height: 841.89)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+        let font = UIFont.systemFont(ofSize: 12)
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: UIColor.black
+        ]
+        let margin: CGFloat = 42
+        let lineHeight = font.lineHeight * 1.45
+        let availableWidth = pageBounds.width - margin * 2
+        let lines = wrappedLines(text, font: font, width: availableWidth)
+        let linesPerPage = max(1, Int((pageBounds.height - margin * 2) / lineHeight))
+
+        return renderer.pdfData { context in
+            for pageStart in stride(from: 0, to: lines.count, by: linesPerPage) {
+                context.beginPage()
+                let pageEnd = min(pageStart + linesPerPage, lines.count)
+                var y = margin
+                for lineIndex in pageStart..<pageEnd {
+                    (lines[lineIndex] as NSString).draw(
+                        at: CGPoint(x: margin, y: y),
+                        withAttributes: attributes
+                    )
+                    y += lineHeight
+                }
+            }
+        }
+    }
+
+    private static func wrappedLines(_ text: String, font: UIFont, width: CGFloat) -> [String] {
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        var lines: [String] = []
+
+        for paragraph in text.components(separatedBy: .newlines) {
+            if paragraph.isEmpty {
+                lines.append("")
+                continue
+            }
+
+            var currentLine = ""
+            let words = paragraph.split(whereSeparator: { $0.isWhitespace }).map(String.init)
+            for word in words {
+                let candidate = currentLine.isEmpty ? word : "\(currentLine) \(word)"
+                let candidateWidth = (candidate as NSString).size(withAttributes: attributes).width
+                if candidateWidth <= width {
+                    currentLine = candidate
+                    continue
+                }
+
+                if !currentLine.isEmpty {
+                    lines.append(currentLine)
+                    currentLine = ""
+                }
+
+                for character in word {
+                    let characterText = String(character)
+                    let next = currentLine + characterText
+                    let nextWidth = (next as NSString).size(withAttributes: attributes).width
+                    if nextWidth > width, !currentLine.isEmpty {
+                        lines.append(currentLine)
+                        currentLine = characterText
+                    } else {
+                        currentLine = next
+                    }
+                }
+            }
+            if !currentLine.isEmpty {
+                lines.append(currentLine)
+            }
+        }
+
+        return lines.isEmpty ? [""] : lines
+    }
+}
+
+private struct TranslationFileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.plainText, .pdf] }
+
+    let data: Data
+
+    init(data: Data) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        guard let contents = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        data = contents
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+private struct TranslationCameraCaptureView: UIViewControllerRepresentable {
+    let onImageCaptured: (UIImage) -> Void
+    let onCancel: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onImageCaptured: onImageCaptured, onCancel: onCancel)
+    }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.cameraCaptureMode = .photo
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        private let onImageCaptured: (UIImage) -> Void
+        private let onCancel: () -> Void
+
+        init(onImageCaptured: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) {
+            self.onImageCaptured = onImageCaptured
+            self.onCancel = onCancel
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            guard let image = info[.originalImage] as? UIImage else {
+                onCancel()
+                return
+            }
+            onImageCaptured(image)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCancel()
+        }
+    }
+}
+
+private struct TranslationShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

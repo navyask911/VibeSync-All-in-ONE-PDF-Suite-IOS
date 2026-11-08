@@ -19,7 +19,7 @@
     <key>CFBundleVersion</key>
     <string>1</string>
     <key>NSCameraUsageDescription</key>
-    <string>VibeSync uses the camera to capture the front and back of an ID card.</string>
+    <string>VibeSync uses the camera to capture ID cards and images for on-device text recognition.</string>
     <key>UIAppFonts</key>
     <array>
         <string>Roboto-Variable.ttf</string>

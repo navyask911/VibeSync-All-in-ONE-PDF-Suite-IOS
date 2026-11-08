@@ -60,6 +60,7 @@ struct ContentView: View {
     @State private var mlKitTranslationSmokeResult: String?
     @State private var ocrEngineSmokeResult: String?
     @State private var signatureEmbeddingSmokeResult: String?
+    @State private var translationExportSmokeResult: String?
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 12),
@@ -122,6 +123,15 @@ struct ContentView: View {
                                                  ? VibeSyncColors.successGreen
                                                  : VibeSyncColors.dangerRed)
                                 .accessibilityIdentifier("signature_embedding_smoke_result")
+                        }
+
+                        if let translationExportSmokeResult {
+                            Text(translationExportSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(translationExportSmokeResult.contains("TRANSLATION_EXPORT_TEST_PASSED")
+                                                 ? VibeSyncColors.successGreen
+                                                 : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("translation_export_smoke_result")
                         }
 
                         if let mlKitTranslationSmokeResult {
@@ -224,6 +234,9 @@ struct ContentView: View {
                 }
                 if arguments.contains("--mlkit-translation-smoke-test") {
                     runMLKitTranslationSmokeTest()
+                }
+                if arguments.contains("--translation-export-smoke-test") {
+                    runTranslationExportSmokeTest()
                 }
             }
         }
@@ -561,6 +574,40 @@ struct ContentView: View {
         }
         guard !data.isEmpty else { return nil }
         return OpenedPDFDocument(data: data, fileName: "VibeSync-Search-Sample.pdf")
+    }
+
+    private func runTranslationExportSmokeTest() {
+        do {
+            let sampleText = "VibeSync Translation Export"
+            let textData = try TranslationExportFactory.makeData(for: sampleText, format: .text)
+            let textURL = try TranslationExportFactory.writeTemporaryFile(data: textData, fileExtension: "txt")
+            defer { try? FileManager.default.removeItem(at: textURL) }
+
+            let reopenedText = try Data(contentsOf: textURL)
+            guard
+                FileManager.default.fileExists(atPath: textURL.path),
+                String(data: reopenedText, encoding: .utf8) == sampleText
+            else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+
+            let pdfData = try TranslationExportFactory.makeData(for: sampleText, format: .pdf)
+            let pdfURL = try TranslationExportFactory.writeTemporaryFile(data: pdfData, fileExtension: "pdf")
+            defer { try? FileManager.default.removeItem(at: pdfURL) }
+
+            guard
+                FileManager.default.fileExists(atPath: pdfURL.path),
+                let pdfDocument = PDFDocument(url: pdfURL),
+                pdfDocument.pageCount > 0,
+                pdfDocument.page(at: 0) != nil
+            else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+
+            translationExportSmokeResult = "TRANSLATION_EXPORT_TEST_PASSED txtBytes=\(reopenedText.count) pdfBytes=\(pdfData.count) pdfPages=\(pdfDocument.pageCount)"
+        } catch {
+            translationExportSmokeResult = "TRANSLATION_EXPORT_TEST_FAILED \(error.localizedDescription)"
+        }
     }
 
     private func runMLKitTranslationSmokeTest() {

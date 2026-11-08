@@ -152,11 +152,31 @@ final class VibeSyncIOSAppUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Translate scanned documents"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["translation_import_button"].exists, "PDF import action is missing.")
+        XCTAssertTrue(app.buttons["translation_camera_button"].exists, "Camera image input is missing.")
+        XCTAssertTrue(app.buttons["translation_photo_library_button"].exists, "Photo Library image input is missing.")
         XCTAssertTrue(app.buttons["translation_translate_button"].exists, "Translate action is missing.")
         XCTAssertTrue(app.textViews["translation_original_input"].exists, "Editable original-text area is missing.")
         XCTAssertTrue(app.buttons["translation_swap_languages"].exists, "Source/target language swap is missing.")
 
         attachScreenshot(named: "screenshot_translation", from: app)
+    }
+
+    func testTranslationExportsGenerateValidTemporaryFiles() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--translation-export-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["translation_export_smoke_result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 20),
+            "The app did not report a result for the translation export smoke test."
+        )
+        XCTAssertTrue(
+            result.label.contains("TRANSLATION_EXPORT_TEST_PASSED"),
+            "TXT/PDF export did not create readable temporary files: \(result.label)"
+        )
+        XCTAssertTrue(result.label.contains("txtBytes="), "The TXT file size was not reported.")
+        XCTAssertTrue(result.label.contains("pdfPages="), "The PDF document was not validated.")
     }
 
     func testMLKitDownloadsModelsAndTranslatesEnglishToSpanish() throws {

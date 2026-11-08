@@ -12,9 +12,15 @@ struct OcrTextObservation: Identifiable, Sendable {
 
 enum OcrEngineError: LocalizedError {
     case pageImageUnavailable
+    case imageUnavailable
 
     var errorDescription: String? {
-        "The scanned PDF page could not be rendered for text recognition."
+        switch self {
+        case .pageImageUnavailable:
+            return "The scanned PDF page could not be rendered for text recognition."
+        case .imageUnavailable:
+            return "The selected image could not be prepared for text recognition."
+        }
     }
 }
 
@@ -37,6 +43,27 @@ enum OcrEngine {
         let renderedPage = page.thumbnail(of: targetSize, for: .cropBox)
         guard let cgImage = renderedPage.cgImage else {
             throw OcrEngineError.pageImageUnavailable
+        }
+        return try await recognize(cgImage: cgImage)
+    }
+
+    /// Normalizes UIImage orientation and caps the OCR input at 2,600 pixels per side.
+    /// This supports camera images and PhotosPicker assets without retaining full-resolution originals.
+    static func recognize(image: UIImage) async throws -> [OcrTextObservation] {
+        let sourceSize = image.size
+        guard sourceSize.width > 0, sourceSize.height > 0 else {
+            throw OcrEngineError.imageUnavailable
+        }
+        let scale = min(1, 2600 / max(sourceSize.width, sourceSize.height))
+        let targetSize = CGSize(
+            width: max(1, (sourceSize.width * scale).rounded()),
+            height: max(1, (sourceSize.height * scale).rounded())
+        )
+        let normalizedImage = UIGraphicsImageRenderer(size: targetSize).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        guard let cgImage = normalizedImage.cgImage else {
+            throw OcrEngineError.imageUnavailable
         }
         return try await recognize(cgImage: cgImage)
     }
