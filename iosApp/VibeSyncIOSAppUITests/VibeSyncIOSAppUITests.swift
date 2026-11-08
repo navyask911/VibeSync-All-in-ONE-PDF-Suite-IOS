@@ -194,7 +194,13 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         try session.resetToDefaultState()
         try session.clearTransactions()
         session.disableDialogs = true
-        _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
+        if #available(iOS 17.0, *) {
+            _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
+        } else {
+            // StoreKitTest's async Swift purchase helper is iOS 17+.
+            // Keep the iOS 16 test-target deployment compatible via its legacy helper.
+            try session.buyProduct(productIdentifier: "vibesync_pro_1y")
+        }
 
         let app = XCUIApplication()
         app.launchArguments = ["--storekit-entitlement-smoke-test"]
