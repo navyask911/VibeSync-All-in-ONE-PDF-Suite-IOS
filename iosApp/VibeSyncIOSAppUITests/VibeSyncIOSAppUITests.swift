@@ -182,7 +182,7 @@ final class VibeSyncIOSAppUITests: XCTestCase {
     }
 
     @MainActor
-    func testStoreKitLocalSubscriptionGrantsProAndRemovesDashboardAds() throws {
+    func testStoreKitLocalSubscriptionGrantsProAndRemovesDashboardAds() async throws {
         guard let storeKitURL = Bundle(for: Self.self).url(
             forResource: "StoreKitConfig",
             withExtension: "storekit"
