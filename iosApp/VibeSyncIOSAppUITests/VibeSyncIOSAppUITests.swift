@@ -204,13 +204,20 @@ final class VibeSyncIOSAppUITests: XCTestCase {
 
         let result = app.staticTexts["storekit_entitlement_smoke_result"]
         XCTAssertTrue(result.waitForExistence(timeout: 15), "StoreKit purchase smoke test did not start.")
-        let purchaseFinished = NSPredicate(
-            format: "label CONTAINS %@ OR label CONTAINS %@",
-            "STOREKIT_ENTITLEMENT_TEST_PASSED",
-            "STOREKIT_ENTITLEMENT_TEST_FAILED"
+        let purchaseFinished = XCTNSPredicateExpectation(
+            predicate: NSPredicate(
+                format: "label CONTAINS %@ OR label CONTAINS %@",
+                "STOREKIT_ENTITLEMENT_TEST_PASSED",
+                "STOREKIT_ENTITLEMENT_TEST_FAILED"
+            ),
+            object: result
         )
-        expectation(for: purchaseFinished, evaluatedWith: result)
-        waitForExpectations(timeout: 60)
+        let waitResult = XCTWaiter.wait(for: [purchaseFinished], timeout: 60)
+        XCTAssertEqual(
+            waitResult,
+            .completed,
+            "StoreKit purchase did not finish. Last reported state: \(result.label)"
+        )
         XCTAssertTrue(
             result.label.contains("STOREKIT_ENTITLEMENT_TEST_PASSED"),
             "StoreKit 2 purchase did not grant the verified Pro Pass entitlement: \(result.label)"

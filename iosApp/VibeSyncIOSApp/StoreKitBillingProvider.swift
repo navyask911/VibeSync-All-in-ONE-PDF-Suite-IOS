@@ -67,6 +67,14 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         hasResolvedEntitlements = true
     }
 
+    /// Resolves the isolated AdMob UI smoke test as a non-subscriber without
+    /// asking StoreKit for entitlement data. This is test-only startup plumbing:
+    /// normal launches and production purchase/restore flows still use StoreKit.
+    func resolveNonProStateForAdMobSmokeTest() {
+        isProActive = false
+        hasResolvedEntitlements = true
+    }
+
     func purchaseProPass() async {
         isLoading = true
         statusMessage = nil
@@ -74,7 +82,9 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
 
         do {
             let completed = try await purchase(productId: StoreKitBillingConstants.proPassProductID)
-            await refreshEntitlements()
+            // purchase(productId:) applies the entitlement from the verified
+            // purchase transaction itself. Avoid immediately issuing a second
+            // StoreKit entitlement query after a successful purchase.
             if completed.boolValue && isProActive {
                 statusMessage = "VibeSync PDF Pro is active. Ads are removed."
             } else {
@@ -113,10 +123,15 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         switch try await product.purchase() {
         case .success(let verification):
             let transaction = try Self.verifiedTransaction(verification)
+            guard transaction.productID == productId else {
+                await transaction.finish()
+                return KotlinBoolean(bool: false)
+            }
+            let isActive = transaction.revocationDate == nil
+                && (transaction.expirationDate.map { $0 > Date() } ?? true)
             await transaction.finish()
-            await self.refreshEntitlements()
-            let activeProductIDs = await Self.currentEntitledProductIDs()
-            return KotlinBoolean(bool: activeProductIDs.contains(productId))
+            await self.applyVerifiedPurchaseEntitlement(isActive: isActive)
+            return KotlinBoolean(bool: isActive)
         case .pending, .userCancelled:
             return KotlinBoolean(bool: false)
         @unknown default:
@@ -130,6 +145,12 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         let restored = await Self.currentEntitledProductIDs()
         await self.refreshEntitlements()
         return restored
+    }
+
+    @MainActor
+    private func applyVerifiedPurchaseEntitlement(isActive: Bool) {
+        isProActive = isActive
+        hasResolvedEntitlements = true
     }
 
     private func startTransactionUpdates() {

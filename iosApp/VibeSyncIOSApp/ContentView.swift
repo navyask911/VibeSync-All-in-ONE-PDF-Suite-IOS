@@ -275,11 +275,11 @@ struct ContentView: View {
                 let isStoreKitSmokeTest = arguments.contains("--storekit-entitlement-smoke-test")
 
                 if isAdMobSmokeTest {
-                    // The banner visibility gate also requires resolved StoreKit
-                    // entitlement state. Resolve it before initializing AdMob so this
-                    // isolated smoke test exercises the same non-Pro banner path.
+                    // The AdMob-only smoke test needs a deterministic non-Pro
+                    // entitlement state. Do not wait on the StoreKit daemon here:
+                    // entitlement verification is covered in the StoreKit test.
+                    billingProvider.resolveNonProStateForAdMobSmokeTest()
                     Task { @MainActor in
-                        await billingProvider.refreshEntitlements()
                         let initialized = await adProvider.initialize()
                         let hasBannerUnitID = AdMobConfiguration.hasBannerUnitID
                         admobInitializationSmokeResult = initialized && hasBannerUnitID
@@ -287,19 +287,16 @@ struct ContentView: View {
                             : "ADMOB_INITIALIZATION_TEST_FAILED: sdkInitialized=\(initialized), bannerUnitConfigured=\(hasBannerUnitID)."
                     }
                 } else if isStoreKitSmokeTest {
-                    // Start the real StoreKit 2 purchase inside the app process. The
-                    // SKTestSession in the UI test supplies the local StoreKit store.
-                    storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_RUNNING"
+                    // Purchase through StoreKit 2 in the app process. Do not call
+                    // configure() first: its entitlement refresh can block before
+                    // the purchase begins in simulator StoreKit test sessions.
+                    storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_LOADING_PRODUCT"
                     Task { @MainActor in
-                        do {
-                            await billingProvider.configure()
-                            await billingProvider.purchaseProPass()
-                            storeKitEntitlementSmokeResult = billingProvider.isProActive
-                                ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
-                                : "STOREKIT_ENTITLEMENT_TEST_FAILED: \(billingProvider.statusMessage ?? "No active Pro Pass entitlement.")"
-                        } catch {
-                            storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_FAILED: \(error.localizedDescription)"
-                        }
+                        storeKitEntitlementSmokeResult = "STOREKIT_ENTITLEMENT_TEST_PURCHASING"
+                        await billingProvider.purchaseProPass()
+                        storeKitEntitlementSmokeResult = billingProvider.isProActive
+                            ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
+                            : "STOREKIT_ENTITLEMENT_TEST_FAILED: \(billingProvider.statusMessage ?? "No active Pro Pass entitlement.")"
                     }
                 } else {
                     // Normal app startup still configures both production providers.
