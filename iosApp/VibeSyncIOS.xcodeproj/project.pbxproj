@@ -22,6 +22,13 @@
 		20000000000000000000000E /* PDFSignatureEmbedder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000011 /* PDFSignatureEmbedder.swift */; };
 		20000000000000000000000F /* MLKitTranslationEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000012 /* MLKitTranslationEngine.swift */; };
 		200000000000000000000010 /* TranslationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000013 /* TranslationView.swift */; };
+		200000000000000000000011 /* StoreKitBillingProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000014 /* StoreKitBillingProvider.swift */; };
+		200000000000000000000012 /* AdMobProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000015 /* AdMobProvider.swift */; };
+		200000000000000000000013 /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000016 /* PaywallView.swift */; };
+		200000000000000000000014 /* StoreKitConfig.storekit in App Resources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000017 /* StoreKitConfig.storekit */; };
+		200000000000000000000015 /* StoreKitConfig.storekit in UI Test Resources */ = {isa = PBXBuildFile; fileRef = 600000000000000000000017 /* StoreKitConfig.storekit */; };
+		200000000000000000000016 /* StoreKitTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 600000000000000000000018 /* StoreKitTest.framework */; };
+		200000000000000000000017 /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = A00000000000000000000001 /* GoogleMobileAds */; };
 		391626DC6F9716AA28122DA4 /* libPods-VibeSyncIOSApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D523D1D3059BADEDC6C3322E /* libPods-VibeSyncIOSApp.a */; };
 /* End PBXBuildFile section */
 
@@ -57,6 +64,11 @@
 		600000000000000000000011 /* PDFSignatureEmbedder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFSignatureEmbedder.swift; sourceTree = "<group>"; };
 		600000000000000000000012 /* MLKitTranslationEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MLKitTranslationEngine.swift; sourceTree = "<group>"; };
 		600000000000000000000013 /* TranslationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationView.swift; sourceTree = "<group>"; };
+		600000000000000000000014 /* StoreKitBillingProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitBillingProvider.swift; sourceTree = "<group>"; };
+		600000000000000000000015 /* AdMobProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdMobProvider.swift; sourceTree = "<group>"; };
+		600000000000000000000016 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		600000000000000000000017 /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
+		600000000000000000000018 /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = System/Library/Frameworks/StoreKitTest.framework; sourceTree = SDKROOT; };
 		D523D1D3059BADEDC6C3322E /* libPods-VibeSyncIOSApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-VibeSyncIOSApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -66,6 +78,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				391626DC6F9716AA28122DA4 /* libPods-VibeSyncIOSApp.a in Frameworks */,
+				200000000000000000000017 /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +87,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				20000000000000000000000C /* XCTest.framework in Frameworks */,
+				200000000000000000000016 /* StoreKitTest.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -94,6 +108,7 @@
 			isa = PBXGroup;
 			children = (
 				D523D1D3059BADEDC6C3322E /* libPods-VibeSyncIOSApp.a */,
+				600000000000000000000018 /* StoreKitTest.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -136,6 +151,10 @@
 				600000000000000000000011 /* PDFSignatureEmbedder.swift */,
 				600000000000000000000012 /* MLKitTranslationEngine.swift */,
 				600000000000000000000013 /* TranslationView.swift */,
+				600000000000000000000014 /* StoreKitBillingProvider.swift */,
+				600000000000000000000015 /* AdMobProvider.swift */,
+				600000000000000000000016 /* PaywallView.swift */,
+				600000000000000000000017 /* StoreKitConfig.storekit */,
 			);
 			path = VibeSyncIOSApp;
 			sourceTree = "<group>";
@@ -166,6 +185,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			packageProductDependencies = (
+				A00000000000000000000001 /* GoogleMobileAds */,
 			);
 			name = VibeSyncIOSApp;
 			productName = VibeSyncIOSApp;
@@ -225,6 +247,9 @@
 			productRefGroup = 700000000000000000000002 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				A00000000000000000000002 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			targets = (
 				300000000000000000000001 /* VibeSyncIOSApp */,
 				300000000000000000000002 /* VibeSyncIOSAppUITests */,
@@ -239,6 +264,7 @@
 			files = (
 				200000000000000000000005 /* Roboto-Variable.ttf in Resources */,
 				200000000000000000000006 /* OFL.txt in Resources */,
+				200000000000000000000014 /* StoreKitConfig.storekit in App Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,6 +272,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				200000000000000000000015 /* StoreKitConfig.storekit in UI Test Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,6 +351,9 @@
 				20000000000000000000000E /* PDFSignatureEmbedder.swift in Sources */,
 				20000000000000000000000F /* MLKitTranslationEngine.swift in Sources */,
 				200000000000000000000010 /* TranslationView.swift in Sources */,
+				200000000000000000000011 /* StoreKitBillingProvider.swift in Sources */,
+				200000000000000000000012 /* AdMobProvider.swift in Sources */,
+				200000000000000000000013 /* PaywallView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -344,6 +374,25 @@
 			targetProxy = 900000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A00000000000000000000002 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 13.12.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A00000000000000000000001 /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A00000000000000000000002 /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		800000000000000000000001 /* Debug */ = {
@@ -396,6 +445,9 @@
 					Shared,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
+				ADMOB_APP_ID = "ca-app-pub-3940256099942544~1458002511";
+				ADMOB_BANNER_AD_UNIT_ID = "ca-app-pub-3940256099942544/2435281174";
+				ADMOB_INTERSTITIAL_AD_UNIT_ID = "ca-app-pub-3940256099942544/4411468910";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -430,6 +482,9 @@
 					Shared,
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.vibesync.toolkit.pdf.ios;
+				ADMOB_APP_ID = "REPLACE_WITH_IOS_ADMOB_APP_ID";
+				ADMOB_BANNER_AD_UNIT_ID = "REPLACE_WITH_IOS_BANNER_AD_UNIT_ID";
+				ADMOB_INTERSTITIAL_AD_UNIT_ID = "REPLACE_WITH_IOS_INTERSTITIAL_AD_UNIT_ID";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

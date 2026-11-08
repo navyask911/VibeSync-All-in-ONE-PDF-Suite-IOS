@@ -17,14 +17,17 @@ object IosPlatformProviders {
     private val pdfEngine = IosPdfEngine()
     private val fileExporter = IosFileExporter()
 
-    /** Register the iOS PDFKit and temporary-file adapters with commonMain. */
-    fun install() {
+    /** Register the iOS platform adapters with commonMain. */
+    fun install() = install(null, null)
+
+    /** Installs StoreKit 2 and AdMob implementations while preserving the no-argument bridge. */
+    fun install(billingProvider: BillingProvider?, adProvider: AdProvider?) {
         PlatformProviders.install(
             pdfEngine,
             null,
             null,
-            null,
-            null,
+            billingProvider,
+            adProvider,
             fileExporter
         )
     }

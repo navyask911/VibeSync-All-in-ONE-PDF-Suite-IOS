@@ -1,0 +1,44 @@
+{
+  "identifier" : "VibeSyncPDFProLocalStoreKit",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "VibeSyncProSubscriptionGroup",
+      "localizations" : [
+        { "description" : "Premium access to VibeSync PDF Suite.", "displayName" : "VibeSync PDF Pro", "locale" : "en_US" }
+      ],
+      "name" : "VibeSync PDF Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "VibeSyncProAnnualLocal",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "One year of watermark-free exports, premium tools, and an ad-free experience.", "displayName" : "VibeSync PDF Pro Annual", "locale" : "en_US" }
+          ],
+          "productID" : "vibesync_pro_1y",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "VibeSync PDF Pro Annual",
+          "subscriptionGroupID" : "VibeSyncProSubscriptionGroup",
+          "type" : "RecurringSubscription",
+          "winBackOffers" : []
+        }
+      ]
+    }
+  ],
+  "version" : { "major" : 3, "minor" : 0 }
+}

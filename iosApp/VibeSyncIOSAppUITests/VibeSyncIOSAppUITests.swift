@@ -1,4 +1,6 @@
 import Foundation
+import StoreKit
+import StoreKitTest
 import XCTest
 
 final class VibeSyncIOSAppUITests: XCTestCase {
@@ -177,6 +179,66 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         )
         XCTAssertTrue(result.label.contains("txtBytes="), "The TXT file size was not reported.")
         XCTAssertTrue(result.label.contains("pdfPages="), "The PDF document was not validated.")
+    }
+
+    func testStoreKitLocalSubscriptionGrantsProAndRemovesDashboardAds() async throws {
+        guard let storeKitURL = Bundle(for: Self.self).url(
+            forResource: "StoreKitConfig",
+            withExtension: "storekit"
+        ) else {
+            XCTFail("StoreKitConfig.storekit was not bundled with the UI tests.")
+            return
+        }
+
+        let session = try SKTestSession(contentsOf: storeKitURL)
+        try session.resetToDefaultState()
+        try session.clearTransactions()
+        session.disableDialogs = true
+        _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
+
+        let app = XCUIApplication()
+        app.launchArguments = ["--storekit-entitlement-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["storekit_entitlement_smoke_result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 30), "StoreKit entitlement smoke test did not report a result.")
+        XCTAssertTrue(
+            result.label.contains("STOREKIT_ENTITLEMENT_TEST_PASSED"),
+            "StoreKit did not expose the verified Pro Pass entitlement: \(result.label)"
+        )
+        XCTAssertTrue(
+            app.staticTexts["dashboard_ads_removed"].waitForExistence(timeout: 15),
+            "The dashboard should hide ads after the StoreKit entitlement is verified."
+        )
+        XCTAssertFalse(
+            app.descendants(matching: .any).matching(identifier: "dashboard_banner_ad").firstMatch.exists,
+            "A premium subscriber must not receive a dashboard banner."
+        )
+
+        let proAction = app.buttons["dashboard_action_vibesync_pdf_pro"]
+        XCTAssertTrue(proAction.waitForExistence(timeout: 15), "The dashboard Pro action is missing.")
+        proAction.tap()
+        XCTAssertTrue(
+            app.staticTexts["pro_active_state"].waitForExistence(timeout: 15),
+            "The paywall did not show the active Pro subscription."
+        )
+    }
+
+    func testAdMobInitializesWithConfiguredSimulatorTestApplicationID() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--admob-initialization-smoke-test"]
+        app.launch()
+
+        let result = app.staticTexts["admob_initialization_smoke_result"]
+        XCTAssertTrue(result.waitForExistence(timeout: 30), "AdMob initialization did not report a result.")
+        XCTAssertTrue(
+            result.label.contains("ADMOB_INITIALIZATION_TEST_PASSED"),
+            "AdMob did not initialize with the configured simulator test app ID: \(result.label)"
+        )
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(identifier: "dashboard_banner_ad").firstMatch.waitForExistence(timeout: 15),
+            "The dashboard banner slot is missing for a non-Pro user."
+        )
     }
 
     func testMLKitDownloadsModelsAndTranslatesEnglishToSpanish() throws {

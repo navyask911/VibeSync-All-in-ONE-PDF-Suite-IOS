@@ -41,6 +41,12 @@ private struct DashboardTool: Identifiable {
 
 struct ContentView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var billingProvider = StoreKitBillingProvider.shared
+    @StateObject private var adProvider = AdMobProvider.shared
+    @State private var isShowingPaywall = false
+    @State private var admobInitializationSmokeResult: String?
+    @State private var storeKitEntitlementSmokeResult: String?
 
     @State private var isImportingPDF = false
     @State private var isExportingPDF = false
@@ -125,6 +131,20 @@ struct ContentView: View {
                                 .accessibilityIdentifier("signature_embedding_smoke_result")
                         }
 
+                        if let admobInitializationSmokeResult {
+                            Text(admobInitializationSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(admobInitializationSmokeResult.contains("ADMOB_INITIALIZATION_TEST_PASSED") ? VibeSyncColors.successGreen : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("admob_initialization_smoke_result")
+                        }
+
+                        if let storeKitEntitlementSmokeResult {
+                            Text(storeKitEntitlementSmokeResult)
+                                .vibeSyncStyle(.bodyMedium)
+                                .foregroundStyle(storeKitEntitlementSmokeResult.contains("STOREKIT_ENTITLEMENT_TEST_PASSED") ? VibeSyncColors.successGreen : VibeSyncColors.dangerRed)
+                                .accessibilityIdentifier("storekit_entitlement_smoke_result")
+                        }
+
                         if let translationExportSmokeResult {
                             Text(translationExportSmokeResult)
                                 .vibeSyncStyle(.bodyMedium)
@@ -174,6 +194,20 @@ struct ContentView: View {
                 }
                 .background(VibeSyncColors.background(for: colorScheme))
             }
+            Group {
+                if billingProvider.hasResolvedEntitlements && billingProvider.isProActive {
+                    Text("Ads removed with VibeSync PDF Pro")
+                        .font(.footnote)
+                        .foregroundStyle(VibeSyncColors.successGreen)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 5)
+                        .accessibilityIdentifier("dashboard_ads_removed")
+                } else if billingProvider.hasResolvedEntitlements && AdMobConfiguration.hasBannerUnitID && adProvider.isInitialized {
+                    AdMobBannerView(adUnitID: AdMobConfiguration.bannerUnitID, isInitialized: adProvider.isInitialized)
+                        .padding(.horizontal, 4)
+                        .accessibilityIdentifier("dashboard_banner_ad")
+                }
+            }
             .background(VibeSyncColors.background(for: colorScheme).ignoresSafeArea())
             .overlay(alignment: .bottomTrailing) {
                 openPDFButton
@@ -211,9 +245,35 @@ struct ContentView: View {
                     PdfViewerView(pdfData: openedPDFForViewing.data, fileName: openedPDFForViewing.fileName)
                 }
             }
+            .sheet(isPresented: $isShowingPaywall) {
+                PaywallView(billingProvider: billingProvider)
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
+                    Task { await billingProvider.refreshEntitlements() }
+                }
+            }
             .onAppear {
-                IosPlatformProviders.shared.install()
+                IosPlatformProviders.shared.install(
+                    billingProvider: billingProvider,
+                    adProvider: adProvider
+                )
                 let arguments = ProcessInfo.processInfo.arguments
+                Task { @MainActor in
+                    await billingProvider.configure()
+                    let initialized = await adProvider.initialize()
+                    if arguments.contains("--admob-initialization-smoke-test") {
+                        admobInitializationSmokeResult = initialized
+                            ? "ADMOB_INITIALIZATION_TEST_PASSED"
+                            : "ADMOB_INITIALIZATION_TEST_FAILED: AdMob app ID is not configured."
+                    }
+                    if arguments.contains("--storekit-entitlement-smoke-test") {
+                        await billingProvider.refreshEntitlements()
+                        storeKitEntitlementSmokeResult = billingProvider.isProActive
+                            ? "STOREKIT_ENTITLEMENT_TEST_PASSED"
+                            : "STOREKIT_ENTITLEMENT_TEST_FAILED: no verified Pro Pass entitlement."
+                    }
+                }
                 if arguments.contains("--pdf-engine-smoke-test") {
                     runPdfEngineSmokeTest()
                 }
@@ -276,7 +336,7 @@ struct ContentView: View {
                     presentNotice(title: "Language", message: "Language selection will be added in a later iOS phase.")
                 }
                 quickAction(symbol: "crown.fill", label: "VibeSync PDF Pro", tint: VibeSyncColors.primary(for: colorScheme)) {
-                    presentNotice(title: "VibeSync PDF Pro", message: "Pro subscription management will be added in a later iOS phase.")
+                    isShowingPaywall = true
                 }
                 quickAction(symbol: "folder", label: "Choose PDF folder", tint: VibeSyncColors.primary(for: colorScheme)) {
                     presentNotice(title: "PDF folder", message: "Folder discovery is not part of this iOS dashboard phase. Use Open PDF to choose a document.")
