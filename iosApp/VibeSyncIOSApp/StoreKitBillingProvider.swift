@@ -115,7 +115,8 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
             let transaction = try Self.verifiedTransaction(verification)
             await transaction.finish()
             await self.refreshEntitlements()
-            return KotlinBoolean(bool: await self.isEntitled(productId: productId).boolValue)
+            let activeProductIDs = await Self.currentEntitledProductIDs()
+            return KotlinBoolean(bool: activeProductIDs.contains(productId))
         case .pending, .userCancelled:
             return KotlinBoolean(bool: false)
         @unknown default:
