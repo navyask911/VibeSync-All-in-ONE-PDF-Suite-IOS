@@ -146,18 +146,30 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
     }
 
     private nonisolated static func currentEntitledProductIDs() async -> Set<String> {
-        var productIDs = Set<String>()
-        for await verification in Transaction.currentEntitlements {
-            guard case .verified(let transaction) = verification else {
-                continue
-            }
-            guard transaction.revocationDate == nil else { continue }
-            if let expirationDate = transaction.expirationDate, expirationDate <= Date() {
-                continue
-            }
-            productIDs.insert(transaction.productID)
+        // This app sells one auto-renewable Pro Pass. Query its latest signed
+        // transaction directly instead of draining the global currentEntitlements
+        // sequence; the latter can remain suspended in the local StoreKit test
+        // environment and prevent the dashboard from resolving its ad state.
+        let productID = StoreKitBillingConstants.proPassProductID
+        guard let verification = await Transaction.latest(for: productID) else {
+            return []
         }
-        return productIDs
+        guard case .verified(let transaction) = verification,
+              transaction.productID == productID,
+              transaction.revocationDate == nil else {
+            return []
+        }
+
+        if let expirationDate = transaction.expirationDate, expirationDate <= Date() {
+            // A renewed subscription remains entitled while App Store reports
+            // subscribed or in its billing grace period.
+            guard let status = await transaction.subscriptionStatus,
+                  status.state == .subscribed || status.state == .inGracePeriod else {
+                return []
+            }
+        }
+
+        return [productID]
     }
 
     private nonisolated static func verifiedTransaction(
