@@ -29,6 +29,7 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
     @Published private(set) var statusMessage: String?
 
     private var didConfigure = false
+    private var entitlementRefreshTask: Task<Set<String>, Never>?
     private var transactionUpdatesTask: Task<Void, Never>?
 
     private override init() {
@@ -62,7 +63,28 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
     }
 
     func refreshEntitlements() async {
-        let activeProducts = await Self.currentEntitledProductIDs()
+        // ContentView can request a refresh from both onAppear and the scene-active
+        // callback during launch. Share one StoreKit query across those callers:
+        // overlapping Transaction.latest requests can stall the StoreKit test daemon
+        // and leave the dashboard's entitlement gate unresolved.
+        let refreshTask: Task<Set<String>, Never>
+        let ownsRefreshTask: Bool
+        if let inFlightTask = entitlementRefreshTask {
+            refreshTask = inFlightTask
+            ownsRefreshTask = false
+        } else {
+            let newTask = Task {
+                await Self.currentEntitledProductIDs()
+            }
+            entitlementRefreshTask = newTask
+            refreshTask = newTask
+            ownsRefreshTask = true
+        }
+
+        let activeProducts = await refreshTask.value
+        if ownsRefreshTask {
+            entitlementRefreshTask = nil
+        }
         isProActive = activeProducts.contains(StoreKitBillingConstants.proPassProductID)
         hasResolvedEntitlements = true
     }

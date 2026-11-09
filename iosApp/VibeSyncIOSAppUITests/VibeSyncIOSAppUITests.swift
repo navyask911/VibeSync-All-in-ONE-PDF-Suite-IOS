@@ -219,12 +219,7 @@ final class VibeSyncIOSAppUITests: XCTestCase {
             ),
             object: result
         )
-        let waitResult = XCTWaiter.wait(for: [entitlementResolved], timeout: 45)
-        XCTAssertEqual(
-            waitResult,
-            .completed,
-            "StoreKit entitlement did not resolve. Last reported state: \(result.label)"
-        )
+        await fulfillment(of: [entitlementResolved], timeout: 45)
         XCTAssertTrue(
             result.label.contains("STOREKIT_ENTITLEMENT_TEST_PASSED"),
             "StoreKit 2 did not expose the verified Pro Pass entitlement: \(result.label)"
