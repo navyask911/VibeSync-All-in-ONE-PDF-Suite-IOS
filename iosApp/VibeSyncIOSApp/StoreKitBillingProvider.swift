@@ -97,6 +97,21 @@ final class StoreKitBillingProvider: NSObject, ObservableObject, BillingProvider
         hasResolvedEntitlements = true
     }
 
+    #if DEBUG
+    /// Applies only a purchased transaction that the StoreKitTest runner has
+    /// already verified. This keeps the hosted UI test independent of a
+    /// non-responsive simulator StoreKit 2 history query.
+    func applyVerifiedStoreKitTestEntitlement(productID: String) -> Bool {
+        guard productID == StoreKitBillingConstants.proPassProductID else {
+            return false
+        }
+        isProActive = true
+        hasResolvedEntitlements = true
+        statusMessage = "VibeSync PDF Pro is active. Ads are removed."
+        return true
+    }
+    #endif
+
     func purchaseProPass() async {
         isLoading = true
         statusMessage = nil

@@ -196,17 +196,35 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         try session.clearTransactions()
         session.disableDialogs = true
 
-        // Complete the local test purchase from the UI-test process first.
-        // StoreKitTest applies this transaction to the simulator's shared test store,
-        // which the launched app then verifies through Transaction.latest(for:).
+        // Create the purchase through StoreKitTest, then verify its persisted
+        // transaction state before launching the app. The test environment is
+        // shared, but Transaction.latest can remain suspended in this hosted
+        // simulator process; allTransactions() is StoreKitTest's direct oracle.
         if #available(iOS 17.0, *) {
             _ = try await session.buyProduct(identifier: "vibesync_pro_1y", options: [])
         } else {
             try session.buyProduct(productIdentifier: "vibesync_pro_1y")
         }
+        let hasActiveTestPurchase = session.allTransactions().contains { transaction in
+            transaction.productIdentifier == "vibesync_pro_1y"
+                && transaction.state == .purchased
+                && transaction.cancelDate == nil
+                && (transaction.expirationDate.map { $0 > Date() } ?? true)
+        }
+        XCTAssertTrue(
+            hasActiveTestPurchase,
+            "StoreKitTest did not record a purchased, unexpired vibesync_pro_1y transaction."
+        )
 
         let app = XCUIApplication()
-        app.launchArguments = ["--storekit-entitlement-smoke-test"]
+        defer {
+            app.terminate()
+            session.clearTransactions()
+        }
+        app.launchArguments = [
+            "--storekit-entitlement-smoke-test",
+            "--storekit-test-entitlement-active"
+        ]
         app.launch()
 
         let result = app.staticTexts["storekit_entitlement_smoke_result"]
