@@ -138,7 +138,7 @@ struct TranslationView: View {
             .padding(16)
         }
         .background(VibeSyncColors.background(for: colorScheme).ignoresSafeArea())
-        .navigationTitle("Translation Scan")
+        .navigationTitle("Scan & Translate")
         .navigationBarTitleDisplayMode(.inline)
         .fileImporter(
             isPresented: $isShowingPDFImporter,

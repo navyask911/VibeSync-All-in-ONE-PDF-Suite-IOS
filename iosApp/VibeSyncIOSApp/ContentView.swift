@@ -1,5 +1,6 @@
 import Foundation
 import PDFKit
+import PhotosUI
 import Shared
 import SwiftUI
 import UIKit
@@ -76,18 +77,18 @@ struct ContentView: View {
     private var dashboardTools: [DashboardTool] {
         [
             DashboardTool(id: "tool_view_read", title: "View & Read", subtitle: "Continuous scroll and 400% zoom", symbol: "book.closed", tint: VibeSyncColors.crimsonPrimary),
-            DashboardTool(id: "tool_edit_sign", title: "Edit & Sign", subtitle: "Pen, highlighter, and e-signature", symbol: "pencil.tip.crop.circle", tint: VibeSyncColors.rubyAccent),
+            DashboardTool(id: "tool_edit_sign", title: "Edit & Sign", subtitle: "Import PDFs, place saved signatures, and export", symbol: "pencil.tip.crop.circle", tint: VibeSyncColors.rubyAccent),
             DashboardTool(id: "tool_document_scanner", title: "Document Scanner", subtitle: "Scan documents to PDF", symbol: "doc.viewfinder", tint: VibeSyncColors.crimsonPrimary),
             DashboardTool(id: "tool_split_document", title: "Split Document", subtitle: "Extract custom page ranges", symbol: "scissors", tint: VibeSyncColors.crimsonDark),
             DashboardTool(id: "tool_merge_documents", title: "Merge Documents", subtitle: "Combine PDF files", symbol: "arrow.triangle.merge", tint: VibeSyncColors.rubyDeep),
-            DashboardTool(id: "tool_images_to_pdf", title: "Images to PDF", subtitle: "Create a PDF from photos", symbol: "photo.badge.plus", tint: VibeSyncColors.rubyAccent),
+            DashboardTool(id: "tool_images_to_pdf", title: "Image to PDF", subtitle: "Choose photos and export a PDF", symbol: "photo.badge.plus", tint: VibeSyncColors.rubyAccent),
             DashboardTool(id: "tool_extract_images", title: "Extract Images", subtitle: "Save embedded images", symbol: "photo", tint: VibeSyncColors.crimsonLight),
             DashboardTool(id: "tool_encrypt_protect", title: "Encrypt & Protect", subtitle: "Password-protect a PDF", symbol: "lock.shield", tint: VibeSyncColors.rubyDeep),
             DashboardTool(id: "tool_batch_scan", title: "Batch scan", subtitle: "Capture multiple pages in one session", symbol: "doc.text.viewfinder", tint: VibeSyncColors.crimsonPrimary),
             DashboardTool(id: "tool_book_split", title: "Book Split", subtitle: "Split book scans into pages", symbol: "book.pages", tint: VibeSyncColors.rubyAccent),
             DashboardTool(id: "tool_id_card", title: "ID Card Composer", subtitle: "Put card front and back on one A4 page", symbol: "person.text.rectangle", tint: VibeSyncColors.crimsonDark),
             DashboardTool(id: "tool_id_photo", title: "ID Photo Maker", subtitle: "Prepare passport and ID photos", symbol: "person.crop.rectangle", tint: VibeSyncColors.rubyDeep),
-            DashboardTool(id: "tool_translation_scan", title: "Translation Scan", subtitle: "Recognize and translate a document", symbol: "character.bubble", tint: VibeSyncColors.rubyAccent),
+            DashboardTool(id: "tool_translation_scan", title: "Scan & Translate", subtitle: "Scan PDFs or photos and translate on device", symbol: "character.bubble", tint: VibeSyncColors.rubyAccent),
             DashboardTool(id: "tool_manual_crop", title: "Manual Crop", subtitle: "Crop and straighten captured images", symbol: "crop.rotate", tint: VibeSyncColors.crimsonPrimary),
             DashboardTool(id: "tool_signature_manager", title: "Signature Manager", subtitle: "Manage and place saved signatures", symbol: "signature", tint: VibeSyncColors.rubyAccent),
             DashboardTool(id: "tool_vault", title: "Vault", subtitle: "Keep private PDF files protected", symbol: "lock.fill", tint: VibeSyncColors.rubyDeep)
@@ -490,6 +491,14 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier(tool.id)
+        case "tool_images_to_pdf":
+            NavigationLink {
+                ImagesToPDFView()
+            } label: {
+                toolCardContent(tool)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(tool.id)
         case "tool_translation_scan":
             NavigationLink {
                 TranslationView()
@@ -600,14 +609,8 @@ struct ContentView: View {
             } else {
                 isImportingPDF = true
             }
-        case "tool_edit_sign":
-            presentNotice(title: tool.title, message: "PDF annotation and editing tools will be connected in a later iOS phase.")
-        case "tool_images_to_pdf":
-            presentNotice(title: tool.title, message: "Image-to-PDF conversion will be connected in a later iOS phase.")
         case "tool_vault":
             presentNotice(title: tool.title, message: "Signature images are stored securely in the iOS Keychain. Open Signature Manager to manage saved signatures.")
-        case "tool_translation_scan":
-            presentNotice(title: tool.title, message: "OCR and translation are intentionally not included in this iOS phase.")
         default:
             presentNotice(title: tool.title, message: "This tool's iOS workflow will be connected in a later phase.")
         }
@@ -983,5 +986,287 @@ struct ContentView: View {
         } catch {
             signatureVaultSmokeResult = "SIGNATURE_VAULT_TEST_FAILED \(error.localizedDescription)"
         }
+    }
+}
+
+private struct ImagesToPDFView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var selectedImages: [UIImage] = []
+    @State private var isLoadingImages = false
+    @State private var isExportingPDF = false
+    @State private var exportDocument: PDFExportDocument?
+    @State private var exportFileName = "VibeSync-Images"
+    @State private var statusMessage = "Choose up to 20 photos to create a PDF. Your images stay on this device."
+
+    private let thumbnailColumns = [
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8),
+        GridItem(.flexible(), spacing: 8)
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Create a PDF from photos")
+                        .vibeSyncStyle(.titleMedium)
+                        .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                    Text("Select images from your photo library. Each image becomes a separate PDF page.")
+                        .vibeSyncStyle(.bodyMedium)
+                        .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+                }
+
+                PhotosPicker(
+                    selection: $selectedItems,
+                    maxSelectionCount: 20,
+                    matching: .images
+                ) {
+                    Label("Choose photos", systemImage: "photo.on.rectangle.angled")
+                        .font(VibeSyncTypography.labelLarge)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(VibeSyncColors.primary(for: colorScheme))
+                .accessibilityIdentifier("images_to_pdf_photos_picker")
+
+                if isLoadingImages {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading selected photos…")
+                            .vibeSyncStyle(.bodyMedium)
+                            .foregroundStyle(VibeSyncColors.textSecondary(for: colorScheme))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if !selectedImages.isEmpty {
+                    HStack {
+                        Text("\(selectedImages.count) photos selected")
+                            .vibeSyncStyle(.labelLarge)
+                            .foregroundStyle(VibeSyncColors.textPrimary(for: colorScheme))
+                        Spacer()
+                        Button("Clear") {
+                            selectedItems = []
+                            selectedImages = []
+                            statusMessage = "Choose photos to create a PDF."
+                        }
+                        .font(VibeSyncTypography.labelLarge)
+                        .accessibilityIdentifier("images_to_pdf_clear_button")
+                    }
+
+                    LazyVGrid(columns: thumbnailColumns, spacing: 8) {
+                        ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 104)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 9))
+                                .overlay(alignment: .bottomTrailing) {
+                                    Text("\(index + 1)")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 4)
+                                        .background(.black.opacity(0.65))
+                                        .clipShape(Capsule())
+                                        .padding(6)
+                                }
+                        }
+                    }
+                    .accessibilityIdentifier("images_to_pdf_selected_images")
+                }
+
+                Button(action: createAndExportPDF) {
+                    HStack(spacing: 9) {
+                        Image(systemName: "doc.richtext")
+                        Text("Create PDF")
+                    }
+                    .font(VibeSyncTypography.labelLarge)
+                    .foregroundStyle(VibeSyncColors.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(VibeSyncColors.crimsonPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
+                .disabled(selectedImages.isEmpty || isLoadingImages || isExportingPDF)
+                .opacity(selectedImages.isEmpty || isLoadingImages ? 0.55 : 1)
+                .accessibilityIdentifier("images_to_pdf_create_button")
+
+                Text(statusMessage)
+                    .vibeSyncStyle(.bodyMedium)
+                    .foregroundStyle(statusMessage.contains("FAILED") || statusMessage.lowercased().contains("could not")
+                                     ? VibeSyncColors.dangerRed
+                                     : VibeSyncColors.textSecondary(for: colorScheme))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("images_to_pdf_status")
+            }
+            .padding(16)
+        }
+        .background(VibeSyncColors.background(for: colorScheme).ignoresSafeArea())
+        .navigationTitle("Image to PDF")
+        .navigationBarTitleDisplayMode(.inline)
+        .onChange(of: selectedItems) { updatedItems in
+            Task {
+                await loadSelectedImages(from: updatedItems)
+            }
+        }
+        .fileExporter(
+            isPresented: $isExportingPDF,
+            document: exportDocument,
+            contentType: .pdf,
+            defaultFilename: exportFileName
+        ) { result in
+            switch result {
+            case .success:
+                statusMessage = "PDF exported successfully."
+            case .failure(let error):
+                statusMessage = "PDF export failed: \(error.localizedDescription)"
+            }
+        }
+        .onAppear {
+            if ProcessInfo.processInfo.arguments.contains("--images-to-pdf-renderer-smoke-test") {
+                runRendererSmokeTest()
+            }
+        }
+    }
+
+    @MainActor
+    private func loadSelectedImages(from items: [PhotosPickerItem]) async {
+        isLoadingImages = true
+        selectedImages = []
+        statusMessage = "Loading selected photos…"
+
+        var loadedImages: [UIImage] = []
+        var failedCount = 0
+        for item in items {
+            do {
+                guard
+                    let imageData = try await item.loadTransferable(type: Data.self),
+                    let image = UIImage(data: imageData)
+                else {
+                    failedCount += 1
+                    continue
+                }
+                loadedImages.append(image)
+            } catch {
+                failedCount += 1
+            }
+        }
+
+        selectedImages = loadedImages
+        isLoadingImages = false
+        if loadedImages.isEmpty {
+            statusMessage = items.isEmpty
+                ? "Choose up to 20 photos to create a PDF."
+                : "No selected photos could be loaded."
+        } else if failedCount > 0 {
+            statusMessage = "\(loadedImages.count) photos loaded. \(failedCount) photos could not be read."
+        } else {
+            statusMessage = "\(loadedImages.count) photos ready. Create your PDF when you are ready."
+        }
+    }
+
+    private func createAndExportPDF() {
+        do {
+            let pdfData = try ImagesToPDFRenderer.makePDF(from: selectedImages)
+            guard let document = PDFDocument(data: pdfData), document.pageCount == selectedImages.count else {
+                throw ImagesToPDFRenderer.Error.invalidOutput
+            }
+            exportDocument = PDFExportDocument(data: pdfData)
+            exportFileName = "VibeSync-Images-to-PDF"
+            statusMessage = "Created a PDF with \(document.pageCount) pages. Choose where to save it."
+            isExportingPDF = true
+        } catch {
+            statusMessage = "PDF creation failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func runRendererSmokeTest() {
+        let sampleImage = UIGraphicsImageRenderer(size: CGSize(width: 240, height: 160)).image { renderer in
+            renderer.cgContext.setFillColor(UIColor.white.cgColor)
+            renderer.cgContext.fill(CGRect(x: 0, y: 0, width: 240, height: 160))
+            renderer.cgContext.setFillColor(UIColor.systemBlue.cgColor)
+            renderer.cgContext.fill(CGRect(x: 24, y: 24, width: 192, height: 112))
+        }
+
+        do {
+            let data = try ImagesToPDFRenderer.makePDF(from: [sampleImage])
+            guard let document = PDFDocument(data: data), document.pageCount == 1 else {
+                throw ImagesToPDFRenderer.Error.invalidOutput
+            }
+            statusMessage = "IMAGE_TO_PDF_TEST_PASSED pages=\(document.pageCount) bytes=\(data.count)"
+        } catch {
+            statusMessage = "IMAGE_TO_PDF_TEST_FAILED \(error.localizedDescription)"
+        }
+    }
+}
+
+private enum ImagesToPDFRenderer {
+    enum Error: LocalizedError {
+        case noImages
+        case invalidImage
+        case invalidOutput
+
+        var errorDescription: String? {
+            switch self {
+            case .noImages:
+                return "Choose at least one image before creating a PDF."
+            case .invalidImage:
+                return "One of the selected images has invalid dimensions."
+            case .invalidOutput:
+                return "The generated PDF could not be validated."
+            }
+        }
+    }
+
+    static func makePDF(from images: [UIImage]) throws -> Data {
+        guard !images.isEmpty else {
+            throw Error.noImages
+        }
+
+        let pageBounds = CGRect(x: 0, y: 0, width: 612, height: 792)
+        let contentBounds = pageBounds.insetBy(dx: 36, dy: 36)
+        let renderer = UIGraphicsPDFRenderer(bounds: pageBounds)
+        let data = renderer.pdfData { context in
+            for image in images {
+                context.beginPage()
+                context.cgContext.setFillColor(UIColor.white.cgColor)
+                context.cgContext.fill(pageBounds)
+
+                let imageSize = image.size
+                guard imageSize.width > 0, imageSize.height > 0 else {
+                    continue
+                }
+                let scale = min(
+                    contentBounds.width / imageSize.width,
+                    contentBounds.height / imageSize.height
+                )
+                let fittedSize = CGSize(
+                    width: imageSize.width * scale,
+                    height: imageSize.height * scale
+                )
+                let imageRect = CGRect(
+                    x: contentBounds.midX - fittedSize.width / 2,
+                    y: contentBounds.midY - fittedSize.height / 2,
+                    width: fittedSize.width,
+                    height: fittedSize.height
+                )
+                image.draw(in: imageRect)
+            }
+        }
+
+        guard
+            !data.isEmpty,
+            let document = PDFDocument(data: data),
+            document.pageCount == images.count
+        else {
+            throw Error.invalidOutput
+        }
+        return data
     }
 }

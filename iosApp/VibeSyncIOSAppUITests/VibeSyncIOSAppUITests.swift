@@ -19,6 +19,19 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["All files stay on your device. No cloud upload."].exists)
         attachScreenshot(named: "screenshot_dashboard", from: app)
 
+        let editSignButton = app.descendants(matching: .any)
+            .matching(identifier: "tool_edit_sign")
+            .firstMatch
+        scrollToElement(editSignButton, in: app)
+        XCTAssertTrue(editSignButton.waitForExistence(timeout: 10), "Edit & Sign dashboard card did not appear.")
+        editSignButton.tap()
+        let editSignPDFImporter = app.buttons["signature_pdf_import_button"]
+        XCTAssertTrue(
+            editSignPDFImporter.waitForExistence(timeout: 10),
+            "Edit & Sign did not open Signature Manager with its PDF importer."
+        )
+        app.navigationBars.buttons.firstMatch.tap()
+
         let idCardButton = app.descendants(matching: .any)
             .matching(identifier: "tool_id_card")
             .firstMatch
@@ -143,6 +156,37 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         XCTAssertTrue(result.label.contains("bytes="), "The flattened PDF size was not reported.")
     }
 
+
+    func testImagesToPDFDashboardOpensPickerAndCreatesValidPDF() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--images-to-pdf-renderer-smoke-test"]
+        app.launch()
+
+        let imageToPDFCard = app.descendants(matching: .any)
+            .matching(identifier: "tool_images_to_pdf")
+            .firstMatch
+        scrollToElement(imageToPDFCard, in: app)
+        XCTAssertTrue(imageToPDFCard.waitForExistence(timeout: 15), "Image to PDF dashboard card did not appear.")
+        imageToPDFCard.tap()
+
+        XCTAssertTrue(app.navigationBars["Image to PDF"].waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            app.descendants(matching: .any)
+                .matching(identifier: "images_to_pdf_photos_picker").firstMatch.exists,
+            "Image to PDF is missing its PhotosPicker entry point."
+        )
+        XCTAssertTrue(app.buttons["images_to_pdf_create_button"].exists, "Create PDF action is missing.")
+
+        let result = app.staticTexts["images_to_pdf_status"]
+        XCTAssertTrue(result.waitForExistence(timeout: 10), "The image-to-PDF renderer did not report a result.")
+        XCTAssertTrue(
+            result.label.contains("IMAGE_TO_PDF_TEST_PASSED"),
+            "Image-to-PDF renderer failed to create a valid PDF: \(result.label)"
+        )
+        XCTAssertTrue(result.label.contains("pages=1"), "The renderer did not produce exactly one page.")
+        XCTAssertTrue(result.label.contains("bytes="), "The renderer did not report a non-empty PDF size.")
+    }
+
     func testTranslationViewShowsOCRImportAndLanguageControls() throws {
         let app = XCUIApplication()
         app.launch()
@@ -152,6 +196,7 @@ final class VibeSyncIOSAppUITests: XCTestCase {
         XCTAssertTrue(translationCard.waitForExistence(timeout: 15), "Translation Scan dashboard card did not appear.")
         translationCard.tap()
 
+        XCTAssertTrue(app.navigationBars["Scan & Translate"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Translate scanned documents"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["translation_import_button"].exists, "PDF import action is missing.")
         XCTAssertTrue(app.buttons["translation_camera_button"].exists, "Camera image input is missing.")
